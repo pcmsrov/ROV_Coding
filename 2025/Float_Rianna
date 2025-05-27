@@ -1,0 +1,46 @@
+import socket
+
+# 配置參數
+ESP32_IP = '192.168.4.1'  # 確認此IP與ESP32一致
+PORT = 80
+
+def send_signal(signal):
+    try:
+        print(f"\n嘗試連接 {ESP32_IP}:{PORT}...")
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(5)  # 5秒超時
+            s.connect((ESP32_IP, PORT))
+            print("連接成功！")
+
+            print(f"發送信號: {signal}")
+            s.sendall(str(signal).encode())
+
+            print("等待ESP32回應...")
+            data = s.recv(1024).decode().strip()
+            print(f"收到回應: {data}")
+
+    except socket.timeout:
+        print("錯誤: 連接超時（請檢查：）")
+        print("  1. ESP32是否已啟動伺服器程式")
+        print("  2. 電腦是否連接到ESP32的WiFi熱點")
+        print("  3. 防火牆是否阻擋了端口", PORT)
+    except ConnectionRefusedError:
+        print("錯誤: 連接被拒絕（請檢查ESP32的IP和端口是否正確）")
+    except Exception as e:
+        print(f"未知錯誤: {type(e).__name__}: {e}")
+
+# 主程式
+if __name__ == "__main__":
+    print("===== ESP32 TCP 通訊測試 =====")
+    while True:
+        try:
+            signal = input("\n輸入信號 (0,1,2) 或 'exit' 退出: ").strip()
+            if signal.lower() == 'exit':
+                break
+            if signal not in ['0', '1', '2']:
+                print("請輸入 0, 1 或 2")
+                continue
+            send_signal(signal)
+        except KeyboardInterrupt:
+            print("\n程式終止")
+            break
