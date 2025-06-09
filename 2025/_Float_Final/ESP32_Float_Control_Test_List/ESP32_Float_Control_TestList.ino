@@ -56,6 +56,58 @@ unsigned long profilePhase = 0;          // 當前Profiling階段
 // 創建WebServer對象
 WebServer server(80);
 
+// 深度數據記錄相關變量
+const int MAX_DEPTH_READINGS = 36;  // 180秒/5秒 = 36個讀數
+float depthReadings[MAX_DEPTH_READINGS];  // 存儲深度讀數的數組
+int currentReadingIndex = 0;  // 當前讀數索引
+unsigned long lastDepthLogTime = 0;  // 上次記錄時間
+const int DEPTH_LOG_INTERVAL = 5000;  // 記錄間隔（5秒）
+
+/**
+ * 記錄深度數據
+ */
+void logDepthData() {
+  unsigned long currentTime = millis();
+  if (currentTime - lastDepthLogTime >= DEPTH_LOG_INTERVAL) {
+    depthReadings[currentReadingIndex] = currentDepth;
+    currentReadingIndex = (currentReadingIndex + 1) % MAX_DEPTH_READINGS;
+    lastDepthLogTime = currentTime;
+    
+    if(deBugMode) {
+      Serial.print("記錄深度數據: ");
+      Serial.print(currentDepth);
+      Serial.println(" m");
+    }
+  }
+}
+
+/**
+ * 發送深度數據記錄
+ */
+void sendDepthLogData() {
+  String dataPacket = "{";
+  dataPacket += "\"company_id\":\"" + String(COMPANY_ID) + "\",";
+  dataPacket += "\"timestamp\":\"" + getUTCTime() + "\",";
+  dataPacket += "\"device_id\":\"" + deviceId + "\",";
+  dataPacket += "\"depth_readings\":[";
+  
+  // 從最舊的數據開始發送
+  for(int i = 0; i < MAX_DEPTH_READINGS; i++) {
+    int index = (currentReadingIndex + i) % MAX_DEPTH_READINGS;
+    dataPacket += String(depthReadings[index], 3);
+    if(i < MAX_DEPTH_READINGS - 1) {
+      dataPacket += ",";
+    }
+  }
+  
+  dataPacket += "],";
+  dataPacket += "\"unit\":\"m\"";
+  dataPacket += "}";
+  
+  Serial.println("發送深度數據記錄：");
+  Serial.println(dataPacket);
+}
+
 /**
  * 設置硬件引腳和初始狀態
  */
@@ -431,6 +483,9 @@ void loop() {
     updateDepth();
     lastDepthUpdate = currentMillis;
   }
+  
+  // 記錄深度數據
+  logDepthData();
   
   // 更新垂直剖面狀態
   updateVerticalProfile();

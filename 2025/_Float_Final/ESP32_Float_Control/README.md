@@ -74,7 +74,3 @@ Connector Pinout
 
 
 
-===== Notes =====
-In Air
-Accending 上升, Push, 7.3s
-Deccending 下降, Pull, 7.5s 
