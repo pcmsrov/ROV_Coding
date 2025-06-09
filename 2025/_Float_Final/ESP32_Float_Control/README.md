@@ -71,3 +71,10 @@ Connector Pinout
 - 如果無法連接 WiFi，請檢查 ESP32 是否已啟動，電源是否正常
 - 如果馬達不轉動，請檢查 DRV8871 的連接和供電
 - 如果數據不準確，請校準深度感測器 
+
+
+
+===== Notes =====
+In Air
+Accending 上升, Push, 7.3s
+Deccending 下降, Pull, 7.5s 
