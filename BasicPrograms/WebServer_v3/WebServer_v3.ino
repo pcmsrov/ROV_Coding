@@ -4,9 +4,23 @@
 #include <Wire.h>
 #include "MS5837.h" //add lib in arduino IDE, by Bluerobtoics v1.1.1
 
+
+
 String companyID = "RN99";
 float depthData = 0.0;  // Will be updated with real sensor data
 const bool DEBUG_MODE = true;  // 设置为true时启用详细调试信息
+
+// 网络设置
+//const char* ssid = "Float_Control";      // WiFi名称
+//const char* password = "12345678";       // WiFi密码
+const char* ssid = "A_MosaFloat";      // WiFi名称
+const char* password = "pcmsrov22";       // WiFi密码
+
+// 存储初始连接参数
+unsigned long descendTime = 7300;
+unsigned long ascendTime = 7300;
+int executeAscendTime = 10000; // 10秒等待时间
+
 
 // 定义缓冲区大小 (3分钟 * 12次/分钟 = 36个数据点)
 const int BUFFER_SIZE = 36;
@@ -17,9 +31,8 @@ int dataCount = 0;         // 当前数据数量
 unsigned long lastRecordTime = 0;
 const unsigned long RECORD_INTERVAL = 5000; // 5秒 = 5000毫秒
 
-// 存储初始连接参数
-unsigned long descendTime = 7300;
-unsigned long accendTime = 7300;
+
+
 String utcTime = "";
 unsigned long utcStartMillis = 0;  // 存储UTC时间对应的millis值
 bool isTimeInitialized = false;    // 时间是否已初始化
@@ -27,12 +40,31 @@ bool isTimeInitialized = false;    // 时间是否已初始化
 // Initialize pressure sensor
 MS5837 sensor;
 
-// 网络设置
-//const char* ssid = "Float_Control";      // WiFi名称
-//const char* password = "12345678";       // WiFi密码
-const char* ssid = "A_MosaFloat";      // WiFi名称
-const char* password = "pcmsrov22";       // WiFi密码
 
+//Motor Control Parameters
+// 定义马达控制引脚
+const int IN1 = 25;  // 马达控制引脚1
+const int IN2 = 26;  // 马达控制引脚2
+const int TopLimitBtn = 19; // 下降时工作
+const int DownLimitBtn = 18; // 上升时工作
+
+// 定义阶段
+enum Phase {
+  IDLE,
+  DESCENDING,
+  WAITING,
+  ASCENDING,
+  COMPLETED
+};
+
+Phase currentPhase = IDLE;
+unsigned long startTime = 0;
+bool startProcess = false;
+bool progress = false;
+bool motorRunning = false;
+
+String inputString = "";      // 存储接收到的串口数据
+bool stringComplete = false;  // 标记是否接收到完整字符串
 
 // 创建WebServer对象
 WebServer server(80);
@@ -141,7 +173,7 @@ void handleInit() {
     // 获取参数
     utcTime = doc["utc_time"].as<String>();
     descendTime = doc["descend_time"].as<unsigned long>();
-    accendTime = doc["accend_time"].as<unsigned long>();
+    ascendTime = doc["accend_time"].as<unsigned long>();
     
     // 解析UTC时间字符串
     int hours = utcTime.substring(0, 2).toInt();
@@ -164,7 +196,7 @@ void handleInit() {
     Serial.print("Descend Time: ");
     Serial.println(descendTime);
     Serial.print("Accend Time: ");
-    Serial.println(accendTime);
+    Serial.println(ascendTime);
     Serial.print("Total seconds: ");
     Serial.println(totalSeconds);
     
@@ -195,6 +227,12 @@ void setup() {
   }
   sensor.setFluidDensity(997); // kg/m^3 (freshwater, 1029 for seawater)
   
+  // 初始化马达控制引脚
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(TopLimitBtn, INPUT_PULLUP);
+  pinMode(DownLimitBtn, INPUT_PULLUP);
+  
   // 初始化缓冲区
   for(int i = 0; i < BUFFER_SIZE; i++) {
     timeBuffer[i] = "";
@@ -211,16 +249,90 @@ void setup() {
   // 启动服务器
   server.begin();
   Serial.println("HTTP服务器已启动");
+  
+  // 初始化马达状态
+  stopMotor();
 }
 
 void loop() {
   server.handleClient();
   
+  // 检查串口数据
+  serialEvent();
+  
+  // 如果收到完整字符串
+  if (stringComplete) {
+    inputString.trim();  // 移除首尾空白字符
+    if (inputString == "Go") {
+      startProcess = true;
+      currentPhase = DESCENDING;
+      Serial.println("Process started!");
+    }
+    // 清空接收缓冲区
+    inputString = "";
+    stringComplete = false;
+  }
+
   // Update sensor readings
   sensor.read();
   depthData = sensor.depth();  // Update depth data with real sensor reading
   
   unsigned long currentTime = millis();
+  
+  // Check if process should start
+  if (startProcess && !progress) {
+    progress = true;
+    startTime = millis();
+    startMotorForward();
+    Serial.println("Starting descending phase");
+  }
+  
+  // Main process control
+  if (progress) {
+    // 每1秒打印状态
+    if (millis() % 1000 < 500) {
+      Serial.print("Time elapsed: ");
+      Serial.print((millis() - startTime) / 1000);
+      Serial.print("s, Motor running: ");
+      Serial.println(motorRunning ? "Yes" : "No");
+    }
+    
+    switch (currentPhase) {
+      case DESCENDING:
+        if (digitalRead(TopLimitBtn) == LOW || millis() - startTime >= descendTime) {
+          stopMotor();
+          currentPhase = WAITING;
+          Serial.println("Descending phase completed");
+        }
+        break;
+        
+      case WAITING:
+        if (millis() - startTime >= executeAscendTime) {
+          startMotorReverse();
+          currentPhase = ASCENDING;
+          Serial.println("Starting ascending phase");
+        }
+        break;
+        
+      case ASCENDING:
+        if (digitalRead(DownLimitBtn) == LOW || millis() - startTime >= ascendTime + executeAscendTime) {
+          stopMotor();
+          currentPhase = COMPLETED;
+          progress = false;
+          startProcess = false;
+          Serial.println("Ascending phase completed");
+        }
+        break;
+        
+      case COMPLETED:
+        Serial.println("Process completed");
+        delay(5000);
+        break;
+        
+      default:
+        break;
+    }
+  }
   
   // 只有在时间初始化后才记录数据
   if(isTimeInitialized && currentTime - lastRecordTime >= RECORD_INTERVAL) {
@@ -243,17 +355,47 @@ void loop() {
     
     // 只在调试模式下打印信息
     if (DEBUG_MODE) {
-      Serial.print("Buffer updated - Write Index: ");
-      Serial.print(writeIndex);
-      Serial.print(", Read Index: ");
-      Serial.println(readIndex);
+      //Serial.print("Buffer updated - Write Index: ");
+      //Serial.print(writeIndex);
+      //Serial.print(", Read Index: ");
+      //Serial.println(readIndex);
       Serial.print("Depth at this record: ");
       Serial.print(depthData, 2);
       Serial.println(" meters");
     }
   }
 
-  delay(1000);  // 增加延迟到1秒，减少CPU使用率
+  delay(500);
+  //delay(1000);  // 增加延迟到1秒，减少CPU使用率
+}
+
+void serialEvent() {
+  while (Serial.available()) {
+    char inChar = (char)Serial.read();
+    if (inChar == '\n') {
+      stringComplete = true;
+    } else {
+      inputString += inChar;
+    }
+  }
+}
+
+void startMotorForward() {
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  motorRunning = true;
+}
+
+void startMotorReverse() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  motorRunning = true;
+}
+
+void stopMotor() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  motorRunning = false;
 }
 
 /**

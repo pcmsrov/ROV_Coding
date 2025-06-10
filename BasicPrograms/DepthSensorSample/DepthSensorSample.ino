@@ -41,7 +41,7 @@ MS5837 sensor;
 
 void setup() {
 
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   Serial.println("Starting");
 
@@ -85,5 +85,5 @@ void loop() {
   Serial.print(sensor.altitude());
   Serial.println(" m above mean sea level");
 
-  delay(10000);
+  delay(1000);
 }
