@@ -16,10 +16,14 @@ import re
 
 #---------- Change Here ----------
 #float motor time adjuest, in miliseconds
+companyID = "RN99";
 descendTime = 7300
 ascendTime = 7300
 executeAscendTime = 120 * 1000  #2min before ascending
+DEBUG_MODE = True  # 设置为true时启用详细调试信息
 #---------- Change Here ----------
+
+
 
 class TimeDataClient(QMainWindow):
     def __init__(self):
@@ -141,7 +145,9 @@ class TimeDataClient(QMainWindow):
                 "utc_time": utc_time,
                 "descend_time": descendTime,
                 "ascend_time": ascendTime,
-                "execute_ascend_time": executeAscendTime
+                "execute_ascend_time": executeAscendTime,
+                "debug_mode": DEBUG_MODE,  # 添加DEBUG_MODE参数
+                "company_id": companyID  # 添加companyID参数
             }
             
             # 发送初始连接请求
@@ -152,10 +158,12 @@ class TimeDataClient(QMainWindow):
                 self.is_connected = True
                 # 在文本显示区域添加初始连接信息
                 self.text_display.append("=== 初始连接信息 ===")
+                self.text_display.append(f"公司ID: {companyID}")
                 self.text_display.append(f"UTC时间: {utc_time}")
                 self.text_display.append(f"下降时间: {descendTime}ms")
                 self.text_display.append(f"上升时间: {ascendTime}ms")
                 self.text_display.append(f"等待时间: {executeAscendTime}ms")
+                self.text_display.append(f"调试模式: {'开启' if DEBUG_MODE else '关闭'}")
                 self.text_display.append("==================\n")
             else:
                 self.status_label.setText("状态: 初始连接失败")

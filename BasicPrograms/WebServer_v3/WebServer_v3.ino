@@ -6,10 +6,6 @@
 
 
 //---------- Change Here ----------
-String companyID = "RN99";
-float depthData = 0.0;  // Will be updated with real sensor data
-const bool DEBUG_MODE = true;  // 设置为true时启用详细调试信息
-
 // 网络设置
 //const char* ssid = "Float_Control";      // WiFi名称
 //const char* password = "12345678";       // WiFi密码
@@ -18,9 +14,13 @@ const char* password = "pcmsrov22";       // WiFi密码
 //---------- Change Here ----------
 
 // 存储初始连接参数, 會從前端界面再發送，不用改
+String companyID = "RN99";
+bool DEBUG_MODE = false;  // 设置为true时启用详细调试信息
 unsigned long descendTime = 7300;
 unsigned long ascendTime = 7300;
 int executeAscendTime = 120 * 1000; // 2min 秒等待时间
+
+float depthData = 0.0;  // Will be updated with real sensor data
 
 // 定义缓冲区大小 (3分钟 * 12次/分钟 = 36个数据点)
 const int BUFFER_SIZE = 36;
@@ -67,8 +67,6 @@ bool stringComplete = false;  // 标记是否接收到完整字符串
 
 // 创建WebServer对象
 WebServer server(80);
-
-// 调试标志
 
 /**
  * 设置WiFi接入点模式
@@ -176,6 +174,8 @@ void handleInit() {
     descendTime = doc["descend_time"].as<unsigned long>();
     ascendTime = doc["ascend_time"].as<unsigned long>();
     executeAscendTime = doc["execute_ascend_time"].as<unsigned long>();
+    DEBUG_MODE = doc["debug_mode"].as<bool>();  // 接收DEBUG_MODE参数
+    companyID = doc["company_id"].as<String>();  // 接收companyID参数
     
     // 解析UTC时间字符串
     int hours = utcTime.substring(0, 2).toInt();
@@ -194,6 +194,8 @@ void handleInit() {
     // 打印接收到的参数
     if (DEBUG_MODE) {
       Serial.println("Received initial connection parameters:");
+      Serial.print("Company ID: ");
+      Serial.println(companyID);
       Serial.print("UTC Time: ");
       Serial.println(utcTime);
       Serial.print("Descend Time: ");
@@ -202,6 +204,8 @@ void handleInit() {
       Serial.println(ascendTime);
       Serial.print("Execute Ascend Time: ");
       Serial.println(executeAscendTime);
+      Serial.print("Debug Mode: ");
+      Serial.println(DEBUG_MODE ? "Enabled" : "Disabled");
       Serial.print("Total seconds: ");
       Serial.println(totalSeconds);
     }
