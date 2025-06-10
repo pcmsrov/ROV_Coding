@@ -9,7 +9,10 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import re
 
-
+#to Do
+#send debug mode ture false
+#UI, 3:7
+#data, write CSV
 
 #---------- Change Here ----------
 #float motor time adjuest, in miliseconds
