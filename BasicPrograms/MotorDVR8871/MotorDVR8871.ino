@@ -5,7 +5,7 @@
 // Define motor control pins
 const int IN1 = 25;  // Motor control pin 1
 const int IN2 = 26;  // Motor control pin 2
-const int BtnPin = 4;
+const int BtnPin = 18;
 int stop = false;
 
 void setup() {

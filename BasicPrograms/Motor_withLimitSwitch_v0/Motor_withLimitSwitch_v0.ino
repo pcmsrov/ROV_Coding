@@ -27,7 +27,7 @@ unsigned long startTime = 0;
 
 int descendTime = 5000;    // 7.3 seconds for descending
 int ascendTime = 5000;     // 7.3 seconds for ascending
-int executeAscendTime = 10000; // 2mins, ready to ascend
+int executeAscendTime = 20000; // 2mins, ready to ascend
 
 bool startProcess = false;
 bool progress = false;
@@ -89,7 +89,7 @@ void loop() {
     
     switch (currentPhase) {
       case DESCENDING:
-        if (digitalRead(TopLimitBtn) == LOW || millis() - startTime >= descendTime) {
+        if (millis() - startTime >= descendTime) {
           stopMotor();
           currentPhase = WAITING;
           Serial.println("Descending phase completed");
@@ -105,7 +105,7 @@ void loop() {
         break;
         
       case ASCENDING:
-        if (digitalRead(DownLimitBtn) == LOW || millis() - startTime >= ascendTime + executeAscendTime) {
+        if (millis() - startTime >= ascendTime + executeAscendTime) {
           stopMotor();
           currentPhase = COMPLETED;
           progress = false;
