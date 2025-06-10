@@ -21,6 +21,7 @@ import requests
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout, 
                             QHBoxLayout, QWidget, QLabel, QGroupBox, QGridLayout,
                             QLineEdit, QMessageBox, QTabWidget, QTextEdit, QSplitter)
+
 from PyQt5.QtCore import QTimer, Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QFont, QPixmap, QIcon
 import matplotlib.pyplot as plt
