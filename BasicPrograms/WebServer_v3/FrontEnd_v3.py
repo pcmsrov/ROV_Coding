@@ -9,9 +9,14 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import re
 
+
+
+#---------- Change Here ----------
 #float motor time adjuest, in miliseconds
 descendTime = 7300
-accendTime = 7300
+ascendTime = 7300
+executeAscendTime = 120 * 1000  #2min before ascending
+#---------- Change Here ----------
 
 class TimeDataClient(QMainWindow):
     def __init__(self):
@@ -44,6 +49,11 @@ class TimeDataClient(QMainWindow):
         self.plot_button = QPushButton("显示深度图表")
         self.plot_button.clicked.connect(self.plot_depth_data)
         left_layout.addWidget(self.plot_button)
+        
+        # 添加Go按钮
+        self.go_button = QPushButton("启动马达控制")
+        self.go_button.clicked.connect(self.start_motor)
+        left_layout.addWidget(self.go_button)
         
         # 创建文本显示区域
         self.text_display = QTextEdit()
@@ -127,7 +137,8 @@ class TimeDataClient(QMainWindow):
             data = {
                 "utc_time": utc_time,
                 "descend_time": descendTime,
-                "accend_time": accendTime
+                "ascend_time": ascendTime,
+                "execute_ascend_time": executeAscendTime
             }
             
             # 发送初始连接请求
@@ -140,7 +151,8 @@ class TimeDataClient(QMainWindow):
                 self.text_display.append("=== 初始连接信息 ===")
                 self.text_display.append(f"UTC时间: {utc_time}")
                 self.text_display.append(f"下降时间: {descendTime}ms")
-                self.text_display.append(f"上升时间: {accendTime}ms")
+                self.text_display.append(f"上升时间: {ascendTime}ms")
+                self.text_display.append(f"等待时间: {executeAscendTime}ms")
                 self.text_display.append("==================\n")
             else:
                 self.status_label.setText("状态: 初始连接失败")
@@ -181,6 +193,20 @@ class TimeDataClient(QMainWindow):
         except requests.exceptions.RequestException:
             self.status_label.setText("状态: 连接失败")
             self.text_display.append("无法连接到服务器，请确保ESP32已启动并处于AP模式。")
+
+    def start_motor(self):
+        """启动马达控制"""
+        try:
+            response = requests.post(f"{self.server_url}/motor/start")
+            if response.status_code == 200:
+                self.text_display.append("马达控制已启动")
+                self.status_label.setText("状态: 马达控制运行中")
+            else:
+                self.text_display.append(f"启动失败: {response.text}")
+                self.status_label.setText("状态: 马达控制启动失败")
+        except requests.exceptions.RequestException:
+            self.text_display.append("无法连接到服务器，请确保ESP32已启动并处于AP模式。")
+            self.status_label.setText("状态: 连接失败")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

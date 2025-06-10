@@ -5,7 +5,7 @@
 #include "MS5837.h" //add lib in arduino IDE, by Bluerobtoics v1.1.1
 
 
-
+//---------- Change Here ----------
 String companyID = "RN99";
 float depthData = 0.0;  // Will be updated with real sensor data
 const bool DEBUG_MODE = true;  // 设置为true时启用详细调试信息
@@ -15,12 +15,12 @@ const bool DEBUG_MODE = true;  // 设置为true时启用详细调试信息
 //const char* password = "12345678";       // WiFi密码
 const char* ssid = "A_MosaFloat";      // WiFi名称
 const char* password = "pcmsrov22";       // WiFi密码
+//---------- Change Here ----------
 
-// 存储初始连接参数
+// 存储初始连接参数, 會從前端界面再發送，不用改
 unsigned long descendTime = 7300;
 unsigned long ascendTime = 7300;
-int executeAscendTime = 10000; // 10秒等待时间
-
+int executeAscendTime = 120 * 1000; // 2min 秒等待时间
 
 // 定义缓冲区大小 (3分钟 * 12次/分钟 = 36个数据点)
 const int BUFFER_SIZE = 36;
@@ -30,7 +30,6 @@ int readIndex = 0;         // 读取位置
 int dataCount = 0;         // 当前数据数量
 unsigned long lastRecordTime = 0;
 const unsigned long RECORD_INTERVAL = 5000; // 5秒 = 5000毫秒
-
 
 
 String utcTime = "";
@@ -78,8 +77,10 @@ void setupWiFi() {
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid, password);
   
-  Serial.print("接入点已创建, IP地址: ");
-  Serial.println(WiFi.softAPIP());
+  if (DEBUG_MODE) {
+    Serial.print("接入点已创建, IP地址: ");
+    Serial.println(WiFi.softAPIP());
+  }
 }
 
 /**
@@ -173,7 +174,8 @@ void handleInit() {
     // 获取参数
     utcTime = doc["utc_time"].as<String>();
     descendTime = doc["descend_time"].as<unsigned long>();
-    ascendTime = doc["accend_time"].as<unsigned long>();
+    ascendTime = doc["ascend_time"].as<unsigned long>();
+    executeAscendTime = doc["execute_ascend_time"].as<unsigned long>();
     
     // 解析UTC时间字符串
     int hours = utcTime.substring(0, 2).toInt();
@@ -190,17 +192,38 @@ void handleInit() {
     isTimeInitialized = true;
     
     // 打印接收到的参数
-    Serial.println("Received initial connection parameters:");
-    Serial.print("UTC Time: ");
-    Serial.println(utcTime);
-    Serial.print("Descend Time: ");
-    Serial.println(descendTime);
-    Serial.print("Accend Time: ");
-    Serial.println(ascendTime);
-    Serial.print("Total seconds: ");
-    Serial.println(totalSeconds);
+    if (DEBUG_MODE) {
+      Serial.println("Received initial connection parameters:");
+      Serial.print("UTC Time: ");
+      Serial.println(utcTime);
+      Serial.print("Descend Time: ");
+      Serial.println(descendTime);
+      Serial.print("Ascend Time: ");
+      Serial.println(ascendTime);
+      Serial.print("Execute Ascend Time: ");
+      Serial.println(executeAscendTime);
+      Serial.print("Total seconds: ");
+      Serial.println(totalSeconds);
+    }
     
     server.send(200, "text/plain", "Initial connection successful");
+  } else {
+    server.send(405, "text/plain", "Method Not Allowed");
+  }
+}
+
+/**
+ * 处理马达控制请求
+ */
+void handleMotorControl() {
+  if (server.method() == HTTP_POST) {
+    if (!progress) {  // 只有在没有进行中的操作时才启动
+      startProcess = true;
+      currentPhase = DESCENDING;
+      server.send(200, "text/plain", "Motor control started");
+    } else {
+      server.send(400, "text/plain", "Motor is already running");
+    }
   } else {
     server.send(405, "text/plain", "Method Not Allowed");
   }
@@ -215,14 +238,18 @@ void handleNotFound() {
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("\n启动时间数据服务器");
+  if (DEBUG_MODE) {
+    Serial.println("\n启动时间数据服务器");
+  }
   
   // Initialize I2C and pressure sensor
   Wire.begin();
   while (!sensor.init()) {
-    Serial.println("Init failed!");
-    Serial.println("Are SDA/SCL connected correctly?");
-    Serial.println("Blue Robotics Bar30: White=SDA, Green=SCL");
+    if (DEBUG_MODE) {
+      Serial.println("Init failed!");
+      Serial.println("Are SDA/SCL connected correctly?");
+      Serial.println("Blue Robotics Bar30: White=SDA, Green=SCL");
+    }
     delay(5000);
   }
   sensor.setFluidDensity(997); // kg/m^3 (freshwater, 1029 for seawater)
@@ -243,12 +270,15 @@ void setup() {
   // 设置Web服务器路由
   server.on("/", HTTP_GET, handleRoot);
   server.on("/data", HTTP_GET, handleData);
-  server.on("/init", HTTP_POST, handleInit);  // 添加初始连接路由
+  server.on("/init", HTTP_POST, handleInit);
+  server.on("/motor/start", HTTP_POST, handleMotorControl);  // 添加马达控制路由
   server.onNotFound(handleNotFound);
   
   // 启动服务器
   server.begin();
-  Serial.println("HTTP服务器已启动");
+  if (DEBUG_MODE) {
+    Serial.println("HTTP服务器已启动");
+  }
   
   // 初始化马达状态
   stopMotor();
@@ -257,22 +287,6 @@ void setup() {
 void loop() {
   server.handleClient();
   
-  // 检查串口数据
-  serialEvent();
-  
-  // 如果收到完整字符串
-  if (stringComplete) {
-    inputString.trim();  // 移除首尾空白字符
-    if (inputString == "Go") {
-      startProcess = true;
-      currentPhase = DESCENDING;
-      Serial.println("Process started!");
-    }
-    // 清空接收缓冲区
-    inputString = "";
-    stringComplete = false;
-  }
-
   // Update sensor readings
   sensor.read();
   depthData = sensor.depth();  // Update depth data with real sensor reading
@@ -284,13 +298,15 @@ void loop() {
     progress = true;
     startTime = millis();
     startMotorForward();
-    Serial.println("Starting descending phase");
+    if (DEBUG_MODE) {
+      Serial.println("Starting descending phase");
+    }
   }
   
   // Main process control
   if (progress) {
     // 每1秒打印状态
-    if (millis() % 1000 < 500) {
+    if (millis() % 1000 < 500 && DEBUG_MODE) {
       Serial.print("Time elapsed: ");
       Serial.print((millis() - startTime) / 1000);
       Serial.print("s, Motor running: ");
@@ -302,7 +318,9 @@ void loop() {
         if (digitalRead(TopLimitBtn) == LOW || millis() - startTime >= descendTime) {
           stopMotor();
           currentPhase = WAITING;
-          Serial.println("Descending phase completed");
+          if (DEBUG_MODE) {
+            Serial.println("Descending phase completed");
+          }
         }
         break;
         
@@ -310,7 +328,9 @@ void loop() {
         if (millis() - startTime >= executeAscendTime) {
           startMotorReverse();
           currentPhase = ASCENDING;
-          Serial.println("Starting ascending phase");
+          if (DEBUG_MODE) {
+            Serial.println("Starting ascending phase");
+          }
         }
         break;
         
@@ -320,12 +340,16 @@ void loop() {
           currentPhase = COMPLETED;
           progress = false;
           startProcess = false;
-          Serial.println("Ascending phase completed");
+          if (DEBUG_MODE) {
+            Serial.println("Ascending phase completed");
+          }
         }
         break;
         
       case COMPLETED:
-        Serial.println("Process completed");
+        if (DEBUG_MODE) {
+          Serial.println("Process completed");
+        }
         delay(5000);
         break;
         
@@ -365,19 +389,7 @@ void loop() {
     }
   }
 
-  delay(500);
-  //delay(1000);  // 增加延迟到1秒，减少CPU使用率
-}
-
-void serialEvent() {
-  while (Serial.available()) {
-    char inChar = (char)Serial.read();
-    if (inChar == '\n') {
-      stringComplete = true;
-    } else {
-      inputString += inChar;
-    }
-  }
+  delay(500);  // 增加延迟到0.5秒，减少CPU使用率
 }
 
 void startMotorForward() {

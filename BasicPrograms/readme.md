@@ -1,3 +1,10 @@
+
+----- Attention -----
+DVR8871 Pin soldering Loose?
+IN1, IN2, GND
+焊盤太小?
+
+
 ----- Depth Sensor, BlueRobotics -----
 Install Library
 Open Arduino IDE
@@ -15,6 +22,7 @@ Altitude: -67.59 m above mean sea level
 
 Lib from github v1.0 / Link from BlueRobotics Website
 data no correct, sealevel depth -9.8m
+
 
 
 
