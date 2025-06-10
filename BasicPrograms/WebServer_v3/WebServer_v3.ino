@@ -1,12 +1,12 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>  //add lib in arduino IDE
+#include <Wire.h>
+#include "MS5837.h" //add lib in arduino IDE, by Bluerobtoics v1.1.1
 
 String companyID = "RN99";
-float depthData = 7.7;  //meters
-const bool DEBUG_MODE = false;  // 设置为true时启用详细调试信息
-
-
+float depthData = 0.0;  // Will be updated with real sensor data
+const bool DEBUG_MODE = true;  // 设置为true时启用详细调试信息
 
 // 定义缓冲区大小 (3分钟 * 12次/分钟 = 36个数据点)
 const int BUFFER_SIZE = 36;
@@ -24,9 +24,15 @@ String utcTime = "";
 unsigned long utcStartMillis = 0;  // 存储UTC时间对应的millis值
 bool isTimeInitialized = false;    // 时间是否已初始化
 
+// Initialize pressure sensor
+MS5837 sensor;
+
 // 网络设置
-const char* ssid = "Float_Control";      // WiFi名称
-const char* password = "12345678";       // WiFi密码
+//const char* ssid = "Float_Control";      // WiFi名称
+//const char* password = "12345678";       // WiFi密码
+const char* ssid = "A_MosaFloat";      // WiFi名称
+const char* password = "pcmsrov22";       // WiFi密码
+
 
 // 创建WebServer对象
 WebServer server(80);
@@ -179,6 +185,16 @@ void setup() {
   Serial.begin(115200);
   Serial.println("\n启动时间数据服务器");
   
+  // Initialize I2C and pressure sensor
+  Wire.begin();
+  while (!sensor.init()) {
+    Serial.println("Init failed!");
+    Serial.println("Are SDA/SCL connected correctly?");
+    Serial.println("Blue Robotics Bar30: White=SDA, Green=SCL");
+    delay(5000);
+  }
+  sensor.setFluidDensity(997); // kg/m^3 (freshwater, 1029 for seawater)
+  
   // 初始化缓冲区
   for(int i = 0; i < BUFFER_SIZE; i++) {
     timeBuffer[i] = "";
@@ -195,11 +211,14 @@ void setup() {
   // 启动服务器
   server.begin();
   Serial.println("HTTP服务器已启动");
-
 }
 
 void loop() {
   server.handleClient();
+  
+  // Update sensor readings
+  sensor.read();
+  depthData = sensor.depth();  // Update depth data with real sensor reading
   
   unsigned long currentTime = millis();
   
@@ -228,6 +247,9 @@ void loop() {
       Serial.print(writeIndex);
       Serial.print(", Read Index: ");
       Serial.println(readIndex);
+      Serial.print("Depth at this record: ");
+      Serial.print(depthData, 2);
+      Serial.println(" meters");
     }
   }
 
