@@ -3,7 +3,10 @@
 #include <ArduinoJson.h>  //add lib in arduino IDE
 
 String companyID = "RN99";
-float depthData = 7.7;
+float depthData = 7.7;  //meters
+const bool DEBUG_MODE = false;  // 设置为true时启用详细调试信息
+
+
 
 // 定义缓冲区大小 (3分钟 * 12次/分钟 = 36个数据点)
 const int BUFFER_SIZE = 36;
@@ -27,6 +30,8 @@ const char* password = "12345678";       // WiFi密码
 
 // 创建WebServer对象
 WebServer server(80);
+
+// 调试标志
 
 /**
  * 设置WiFi接入点模式
@@ -104,11 +109,13 @@ void handleData() {
   response += "]";
   server.send(200, "application/json", response);
   
-  // 打印调试信息
-  Serial.print("发送数据，当前读取位置: ");
-  Serial.print(readIndex);
-  Serial.print(", 写入位置: ");
-  Serial.println(writeIndex);
+  // 只在调试模式下打印信息
+  if (DEBUG_MODE) {
+    Serial.print("发送数据，当前读取位置: ");
+    Serial.print(readIndex);
+    Serial.print(", 写入位置: ");
+    Serial.println(writeIndex);
+  }
 }
 
 /**
@@ -189,9 +196,6 @@ void setup() {
   server.begin();
   Serial.println("HTTP服务器已启动");
 
-  delay(100);
-  Serial.println("\nReady");
-
 }
 
 void loop() {
@@ -218,14 +222,16 @@ void loop() {
     // 更新最后记录时间
     lastRecordTime = currentTime;
     
-    // 打印当前缓冲区状态（用于调试）
-    Serial.print("Buffer updated - Write Index: ");
-    Serial.print(writeIndex);
-    Serial.print(", Read Index: ");
-    Serial.println(readIndex);
+    // 只在调试模式下打印信息
+    if (DEBUG_MODE) {
+      Serial.print("Buffer updated - Write Index: ");
+      Serial.print(writeIndex);
+      Serial.print(", Read Index: ");
+      Serial.println(readIndex);
+    }
   }
 
-  delay(500);
+  delay(1000);  // 增加延迟到1秒，减少CPU使用率
 }
 
 /**
