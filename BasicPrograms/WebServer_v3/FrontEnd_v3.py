@@ -17,10 +17,10 @@ import re
 #---------- Change Here ----------
 #float motor time adjuest, in miliseconds
 companyID = "RN99";
-descendTime = 7300
-ascendTime = 7300
-executeAscendTime = 120 * 1000  #2min before ascending
-DEBUG_MODE = True  # 设置为true时启用详细调试信息
+descendTime = 8300
+ascendTime = 9300
+executeAscendTime = 10 * 1000  #2min before ascending
+DEBUG_MODE = False  # 设置为true时启用详细调试信息
 #---------- Change Here ----------
 
 
