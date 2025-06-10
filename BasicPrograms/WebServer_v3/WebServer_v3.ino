@@ -5,13 +5,13 @@
 #include "MS5837.h" //add lib in arduino IDE, by Bluerobtoics v1.1.1
 
 
-//---------- Change Here ----------
+//---------- Maybe Change Here ----------
 // 网络设置
 //const char* ssid = "Float_Control";      // WiFi名称
 //const char* password = "12345678";       // WiFi密码
 const char* ssid = "A_MosaFloat";      // WiFi名称
 const char* password = "pcmsrov22";       // WiFi密码
-//---------- Change Here ----------
+//---------- Maybe Change Here ----------
 
 // 存储初始连接参数, 會從前端界面再發送，不用改
 String companyID = "RN99";
