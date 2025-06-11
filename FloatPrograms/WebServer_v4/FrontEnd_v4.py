@@ -28,7 +28,7 @@ DEBUG_MODE = False  # 设置为true时启用详细调试信息
 class TimeDataClient(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Time Data Client")
+        self.setWindowTitle("MATE Float, Mosasaurus PCMS")
         self.setGeometry(100, 100, 1000, 600)
         
         # Create central widget and layout
@@ -39,6 +39,7 @@ class TimeDataClient(QMainWindow):
         # Left control panel
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
+        left_panel.setFixedWidth(400)  # Set fixed width for left panel
         
         # Create labels
         self.status_label = QLabel("Status: Not Connected")
@@ -58,7 +59,7 @@ class TimeDataClient(QMainWindow):
         left_layout.addWidget(self.plot_button)
         
         # Add Go button
-        self.go_button = QPushButton("Start Motor Control")
+        self.go_button = QPushButton("Start Vertical Profiling")
         self.go_button.clicked.connect(self.start_motor)
         left_layout.addWidget(self.go_button)
         
@@ -75,6 +76,21 @@ class TimeDataClient(QMainWindow):
         
         self.force_stop_button = QPushButton("Force Stop")
         self.force_stop_button.clicked.connect(self.force_stop)
+        self.force_stop_button.setStyleSheet("""
+            QPushButton {
+                background-color: #ff4444;
+                color: white;
+                border: none;
+                padding: 5px;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background-color: #ff6666;
+            }
+            QPushButton:pressed {
+                background-color: #cc0000;
+            }
+        """)
         test_buttons_layout.addWidget(self.force_stop_button)
         
         left_layout.addLayout(test_buttons_layout)
@@ -82,6 +98,9 @@ class TimeDataClient(QMainWindow):
         # Create text display area
         self.text_display = QTextEdit()
         self.text_display.setReadOnly(True)
+        font = self.text_display.font()
+        font.setPointSize(14)  # Set font size to 12 points
+        self.text_display.setFont(font)
         left_layout.addWidget(self.text_display)
         
         # Right chart area
