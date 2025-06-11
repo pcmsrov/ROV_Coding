@@ -21,14 +21,15 @@ import re
 companyID = "RN99"
 descendTime = 8300
 ascendTime = 9300
+#second round, switch only??
 
 #debug
-executeAscendTime = 10 * 1000  #10sec before ascending, count from starting desending
+executeAscendTime = 7 * 1000  #10sec before ascending, count from starting desending
 
 #Competition
 #executeAscendTime = 120 * 1000  #2min / 120s before ascending, count from starting desending
 
-DEBUG_MODE = True  # 设置为true时启用详细调试信息
+DEBUG_MODE = False  # 设置为true时启用详细调试信息
 #---------- Change Here ----------
 
 
