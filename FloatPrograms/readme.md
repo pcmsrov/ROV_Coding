@@ -2,6 +2,11 @@ To Do
 Last run, without timer, switch only?
 >= 3min, ESP32 buffer size 15min? 5min
 
+Depth Sensor Calibration
+
+show data, side scroll
+
+antena, 延長線，螺絲
 
 ----- Attention -----
 DVR8871 Pin soldering Loose?

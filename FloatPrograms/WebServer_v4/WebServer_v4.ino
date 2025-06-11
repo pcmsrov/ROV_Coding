@@ -351,14 +351,14 @@ void loop() {
   // Test functionality
   if (testPull) {
     startMotorForward();
-    delay(1000);
+    delay(500);
     stopMotor();
     testPull = false;
   }
   
   if (testPush) {
     startMotorReverse();
-    delay(1000);
+    delay(500);
     stopMotor();
     testPush = false;
   }

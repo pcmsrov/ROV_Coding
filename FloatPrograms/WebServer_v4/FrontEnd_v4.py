@@ -19,12 +19,12 @@ import re
 
 #float motor time adjuest, in miliseconds
 companyID = "RN99"
-descendTime = 8500
-ascendTime = 9300
+descendTime = 11000
+ascendTime = 9500
 #second round, switch only??
 
 #debug
-executeAscendTime = 7 * 1000  #10sec before ascending, count from starting desending
+executeAscendTime = 10 * 1000  #10sec before ascending, count from starting desending
 
 #Competition
 #executeAscendTime = 120 * 1000  #2min / 120s before ascending, count from starting desending
