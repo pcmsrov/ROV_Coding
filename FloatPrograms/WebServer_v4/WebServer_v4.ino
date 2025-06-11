@@ -385,7 +385,7 @@ void loop() {
           stopMotor();
           delay(300);
           startMotorReverse();  //move back a little
-          delay(300)
+          delay(300);
           stopMotor();
           currentPhase = WAITING;
           if (DEBUG_MODE) {
@@ -407,9 +407,9 @@ void loop() {
       case ASCENDING:
         if (digitalRead(DownLimitBtn) == LOW || millis() - startTime >= ascendTime + executeAscendTime) {
           stopMotor();
-          delay(300)
+          delay(300);
           startMotorForward(); //move back a little
-          delay(300)
+          delay(300);
           stopMotor();
           currentPhase = COMPLETED;
           progress = false;
