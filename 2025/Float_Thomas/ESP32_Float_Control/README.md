@@ -14,6 +14,19 @@
 | SDA (GPIO21) | 感測器 SDA (如有) |
 | SCL (GPIO22) | 感測器 SCL (如有) |
 
+
+## BlueRobtics, Bar30 Depth Sensor, I2C
+Supply Voltage	2.5–5.5 volts
+I2C Logic Voltage (SDA and SCL)	2.5–3.6 volts
+[ESP32 GPIO 3.3V, OK. Arduino PinOut 5V, Need Converter]
+Connector Pinout	
+1 - Red / Vin
+2 - Green / SCL
+3 - White / SDA
+4 - Black / GND
+
+
+
 ## DRV8871 操作邏輯
 
 | IN1 | IN2 | 動作 |
@@ -58,3 +71,6 @@
 - 如果無法連接 WiFi，請檢查 ESP32 是否已啟動，電源是否正常
 - 如果馬達不轉動，請檢查 DRV8871 的連接和供電
 - 如果數據不準確，請校準深度感測器 
+
+
+

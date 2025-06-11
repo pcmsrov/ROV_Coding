@@ -8,15 +8,21 @@
 
 #include <WiFi.h>
 #include <WebServer.h>
-#include <Wire.h>
 #include <time.h>
 
+#include <Wire.h>
+//For I2C, Depth Sensor
+#include "MS5837.h"
+
+
+//Check Data Fromat, Manual
+// Compnay Name, Ranger
+const char* COMPANY_ID = "RN_XX";    // 公司編號
+
 // 網絡設置
-const char* ssid = "Float_Control";      // WiFi名稱
+const char* ssid = "Mosa_Float";      // WiFi名稱
 const char* password = "12345678";       // WiFi密碼
 
-// 公司信息
-const char* COMPANY_ID = "THOMAS001";    // 公司編號
 
 // DRV8871馬達驅動引腳
 #define MOTOR_IN1 25                     // 馬達控制IN1引腳
@@ -24,9 +30,12 @@ const char* COMPANY_ID = "THOMAS001";    // 公司編號
 
 // 深度感測器相關設置
 // 注意：這裡只是模擬數據，如果有實際感測器需要引入對應庫
+MS5837 sensor;
 float currentDepth = 0.0;                // 當前深度(米)
 unsigned long lastDepthUpdate = 0;       // 上次深度更新時間
-bool isSimulation = true;                // 是否使用模擬數據
+
+//bool isSimulation = false;                // 是否使用模擬數據
+bool deBugMode = true;
 bool hasSentInitialPacket = false;       // 是否已發送初始數據包
 
 // 浮標控制狀態
@@ -37,12 +46,12 @@ enum MotorState {
 };
 
 MotorState currentState = MOTOR_STOP;    // 當前馬達狀態
-String deviceId = "RN01";                // 設備ID
+String deviceId = "Mosa_Float";                // 設備ID
 
-// 垂直剖面控制
-bool isVerticalProfileActive = false;    // 是否正在執行垂直剖面
-unsigned long profileStartTime = 0;      // 剖面開始時間
-unsigned long profilePhase = 0;          // 當前剖面階段
+// Vertical Profiling
+bool isVerticalProfileActive = false;    // 是否正在執行Vertical Profiling
+unsigned long profileStartTime = 0;      // 開始時間
+unsigned long profilePhase = 0;          // 當前Profiling階段
 
 // 創建WebServer對象
 WebServer server(80);
@@ -59,9 +68,17 @@ void setupHardware() {
   digitalWrite(MOTOR_IN1, LOW);
   digitalWrite(MOTOR_IN2, LOW);
   
-  // 初始化I2C通信（如果有實際感測器）
+  // 初始化I2C通信（Depth Sensor）
   Wire.begin();
-  
+  while (!sensor.init()) {
+    Serial.println("Init failed!");
+    Serial.println("Are SDA/SCL connected correctly?");
+    Serial.println("Blue Robotics Bar30: White=SDA, Green=SCL");
+    Serial.println("\n\n\n");
+    delay(5000);
+  }
+  sensor.setFluidDensity(997); // kg/m^3 (freshwater, 1029 for seawater)
+
   Serial.println("硬件初始化完成");
 }
 
@@ -152,9 +169,16 @@ void updateDepth() {
       currentDepth -= 0.05;  // 上升時減少深度，但不低於0
       if (currentDepth < 0) currentDepth = 0;
     }
-  } else {
-    // 從實際感測器讀取深度數據
-    // 例如: currentDepth = readDepthSensor();
+  } 
+  else {
+    sensor.read();
+    currentDepth = sensor.depth();
+    if(deBugMode){
+      Serial.print("Depth: ");
+      Serial.print(currentDepth);
+      Serial.println(" m");
+    }
+
   }
 }
 
@@ -314,6 +338,12 @@ void handleVerticalProfile() {
   server.send(200, "text/plain", "Vertical profile started");
 }
 
+float depthThrusthold = 2.5; //meter
+int motorDownTime = 7300; //milisecond, 7.3s
+int atBottomTime = 50000; //milisecond, 50s; 45s at least
+int motorUpTime = 7500; //milisecond, 7.5s
+
+
 /**
  * 更新垂直剖面狀態
  */
@@ -324,28 +354,28 @@ void updateVerticalProfile() {
   unsigned long elapsedTime = currentTime - profileStartTime;
   
   // 每個階段2秒
-  if (elapsedTime < 2000) {  // 0-2秒：下潛
+  if (elapsedTime < motorDownTime) {  //下潛
     if (profilePhase == 0) {
       motorDown();
       profilePhase = 1;
       Serial.println("垂直剖面 - 階段0：下潛中");
     }
   }
-  else if (elapsedTime < 4000) {  // 2-4秒：停止
+  else if (elapsedTime < atBottomTime) {  //停止
     if (profilePhase == 1) {
       motorStop();
       profilePhase = 2;
       Serial.println("垂直剖面 - 階段1：停止");
     }
   }
-  else if (elapsedTime < 6000) {  // 4-6秒：上升
+  else if (elapsedTime < motorUpTime) {  // 上升
     if (profilePhase == 2) {
       motorUp();
       profilePhase = 3;
       Serial.println("垂直剖面 - 階段2：上升");
     }
   }
-  else {  // 6秒後：停止並結束剖面
+  else {  //停止並結束剖面
     if (profilePhase == 3) {
       motorStop();
       isVerticalProfileActive = false;
