@@ -23,6 +23,14 @@
 | HIGH | LOW | 反轉 (下潛) |
 | HIGH | HIGH | 停止/煞車 |
 
+
+Bar30 Depth/Pressure Sensor
+1 - Red -Vin
+2 - Green - SCL
+3 - White - SDA
+4 - Black -	GND
+
+
 ## WiFi 設置
 
 程序將創建一個名為 `Float_Control` 的 WiFi 網絡，密碼為 `12345678`。
