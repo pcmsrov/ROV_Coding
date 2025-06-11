@@ -14,7 +14,7 @@ const char* password = "pcmsrov22";       // WiFi密码
 //---------- Maybe Change Here ----------
 
 // 存储初始连接参数, 會從前端界面再發送，不用改
-String companyID = "RN99";
+String companyID = "NotSetYet";
 bool DEBUG_MODE = false;  // 设置为true时启用详细调试信息
 unsigned long descendTime = 7300;
 unsigned long ascendTime = 7300;
@@ -225,14 +225,31 @@ void handleInit() {
  */
 void handleMotorControl() {
   if (server.method() == HTTP_POST) {
+    if (DEBUG_MODE) {
+      Serial.println("Received motor control request");
+      Serial.print("Current progress: ");
+      Serial.println(progress ? "true" : "false");
+      Serial.print("Current startProcess: ");
+      Serial.println(startProcess ? "true" : "false");
+    }
+    
     if (!progress) {  // 只有在没有进行中的操作时才启动
       startProcess = true;
       currentPhase = DESCENDING;
+      if (DEBUG_MODE) {
+        Serial.println("Motor control started - Phase set to DESCENDING");
+      }
       server.send(200, "text/plain", "Motor control started");
     } else {
+      if (DEBUG_MODE) {
+        Serial.println("Motor control rejected - Already in progress");
+      }
       server.send(400, "text/plain", "Motor is already running");
     }
   } else {
+    if (DEBUG_MODE) {
+      Serial.println("Invalid method for motor control");
+    }
     server.send(405, "text/plain", "Method Not Allowed");
   }
 }
@@ -348,6 +365,13 @@ void loop() {
   
   // Check if process should start
   if (startProcess && !progress) {
+    if (DEBUG_MODE) {
+      Serial.println("Starting motor process");
+      Serial.print("startProcess: ");
+      Serial.println(startProcess);
+      Serial.print("progress: ");
+      Serial.println(progress);
+    }
     progress = true;
     startTime = millis();
     startMotorForward();
@@ -382,8 +406,6 @@ void loop() {
     switch (currentPhase) {
       case DESCENDING:
         if (digitalRead(TopLimitBtn) == LOW || millis() - startTime >= descendTime) {
-          stopMotor();
-          delay(300);
           startMotorReverse();  //move back a little
           delay(300);
           stopMotor();
@@ -406,8 +428,6 @@ void loop() {
         
       case ASCENDING:
         if (digitalRead(DownLimitBtn) == LOW || millis() - startTime >= ascendTime + executeAscendTime) {
-          stopMotor();
-          delay(300);
           startMotorForward(); //move back a little
           delay(300);
           stopMotor();
@@ -425,6 +445,7 @@ void loop() {
           Serial.println("Process completed");
         }
         delay(5000);
+        
         break;
         
       default:
@@ -463,7 +484,8 @@ void loop() {
     }
   }
 
-  delay(500);  // 增加延迟到0.5秒，减少CPU使用率
+  //delay(500);  // 增加延迟到0.5秒，减少CPU使用率
+  delay(250);  // 增加延迟到0.25秒，减少CPU使用率
 }
 
 //linear actuator pull

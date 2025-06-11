@@ -15,12 +15,20 @@ import re
 #data, write CSV
 
 #---------- Change Here ----------
+#in get paramemters wrong, change it, and restart the front end program 
+
 #float motor time adjuest, in miliseconds
 companyID = "RN99"
 descendTime = 8300
 ascendTime = 9300
-executeAscendTime = 10 * 1000  #2min before ascending
-DEBUG_MODE = False  # 设置为true时启用详细调试信息
+
+#debug
+executeAscendTime = 10 * 1000  #10sec before ascending, count from starting desending
+
+#Competition
+#executeAscendTime = 120 * 1000  #2min / 120s before ascending, count from starting desending
+
+DEBUG_MODE = True  # 设置为true时启用详细调试信息
 #---------- Change Here ----------
 
 
@@ -99,7 +107,7 @@ class TimeDataClient(QMainWindow):
         self.text_display = QTextEdit()
         self.text_display.setReadOnly(True)
         font = self.text_display.font()
-        font.setPointSize(14)  # Set font size to 12 points
+        font.setPointSize(12)  # Set font size to 12 points
         self.text_display.setFont(font)
         left_layout.addWidget(self.text_display)
         
@@ -200,7 +208,7 @@ class TimeDataClient(QMainWindow):
                 self.text_display.append(f"Ascend Time: {ascendTime}ms")
                 self.text_display.append(f"Wait Time: {executeAscendTime}ms")
                 self.text_display.append(f"Debug Mode: {'Enabled' if DEBUG_MODE else 'Disabled'}")
-                self.text_display.append("===================================\n")
+                self.text_display.append("====================\n")
             else:
                 self.status_label.setText("Status: Initial Connection Failed")
                 self.text_display.append("Initial connection failed, please try again.")
@@ -244,14 +252,17 @@ class TimeDataClient(QMainWindow):
     def start_motor(self):
         """Start motor control"""
         try:
+            self.text_display.append("Attempting to start motor control...")
             response = requests.post(f"{self.server_url}/motor/start")
             if response.status_code == 200:
-                self.text_display.append("Motor control started")
+                self.text_display.append("Motor control started successfully")
                 self.status_label.setText("Status: Motor Control Running")
             else:
                 self.text_display.append(f"Start failed: {response.text}")
+                self.text_display.append(f"Status code: {response.status_code}")
                 self.status_label.setText("Status: Motor Control Start Failed")
-        except requests.exceptions.RequestException:
+        except requests.exceptions.RequestException as e:
+            self.text_display.append(f"Connection error: {str(e)}")
             self.text_display.append("Unable to connect to server, please ensure ESP32 is running in AP mode.")
             self.status_label.setText("Status: Connection Failed")
 
