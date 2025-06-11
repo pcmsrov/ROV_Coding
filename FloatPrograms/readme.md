@@ -1,6 +1,7 @@
 To Do
 Last run, without timer, switch only?
 >= 3min, ESP32 buffer size 15min? 5min
+program test, preparation days
 
 Depth Sensor Calibration
 
