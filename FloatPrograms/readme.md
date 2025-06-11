@@ -10,6 +10,12 @@ IN1, IN2, GND
 
 
 ----- Depth Sensor, BlueRobotics -----
+Connector Pinout	
+1 - Red / Vin
+2 - Green / SCL
+3 - White / SDA
+4 - Black / GND
+
 Install Library
 Open Arduino IDE
 Sketch > Include Lib > Manage Library
