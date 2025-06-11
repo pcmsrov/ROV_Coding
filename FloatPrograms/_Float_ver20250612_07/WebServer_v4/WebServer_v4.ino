@@ -25,6 +25,7 @@ float depthData = 0.0;  // Will be updated with real sensor data
 // 定义缓冲区大小 (3分钟 * 12次/分钟 = 36个数据点)
 const int BUFFER_SIZE = 36;
 String timeBuffer[BUFFER_SIZE];
+float depthBuffer[BUFFER_SIZE];  // 新增深度数据缓冲区
 int writeIndex = 0;        // 写入位置
 int readIndex = 0;         // 读取位置
 int dataCount = 0;         // 当前数据数量
@@ -140,7 +141,7 @@ void handleData() {
     response += "\"";
     response += companyID + ", ";
     response += timeBuffer[readIndex] + " UTC, ";
-    response += String(depthData, 2) + " meters";
+    response += String(depthBuffer[readIndex], 2) + " meters";
     response += "\"";
     
     readIndex = (readIndex + 1) % BUFFER_SIZE;
@@ -351,14 +352,14 @@ void loop() {
   // Test functionality
   if (testPull) {
     startMotorForward();
-    delay(1000);
+    delay(500);
     stopMotor();
     testPull = false;
   }
   
   if (testPush) {
     startMotorReverse();
-    delay(1000);
+    delay(500);
     stopMotor();
     testPush = false;
   }
@@ -460,6 +461,7 @@ void loop() {
     
     // 存储到缓冲区
     timeBuffer[writeIndex] = currentTimeStr;
+    depthBuffer[writeIndex] = depthData;  // 存储深度数据
     
     // 更新写入索引
     writeIndex = (writeIndex + 1) % BUFFER_SIZE;

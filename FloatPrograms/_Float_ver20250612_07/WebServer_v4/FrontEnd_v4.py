@@ -19,12 +19,12 @@ import re
 
 #float motor time adjuest, in miliseconds
 companyID = "RN99"
-descendTime = 8500
-ascendTime = 9300
+descendTime = 11000
+ascendTime = 11000
 #second round, switch only??
 
 #debug
-executeAscendTime = 7 * 1000  #10sec before ascending, count from starting desending
+executeAscendTime = 15 * 1000  #10sec before ascending, count from starting desending
 
 #Competition
 #executeAscendTime = 120 * 1000  #2min / 120s before ascending, count from starting desending
@@ -164,12 +164,18 @@ class TimeDataClient(QMainWindow):
         ax = self.figure.add_subplot(111)
         
         # Plot depth data
-        ax.plot(self.time_data, self.depth_data, 'b-')
+        ax.plot(self.time_data, self.depth_data, 'b-', linewidth=2)
         
         # Set chart title and labels
         ax.set_title('Depth vs Time')
         ax.set_xlabel('Time (UTC)')
         ax.set_ylabel('Depth (meters)')
+        
+        # Invert y-axis since depth increases downward
+        ax.invert_yaxis()
+        
+        # Add grid
+        ax.grid(True, linestyle='--', alpha=0.7)
         
         # Rotate x-axis labels to prevent overlap
         plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
@@ -239,6 +245,10 @@ class TimeDataClient(QMainWindow):
                             if depth is not None and time is not None:
                                 self.depth_data.append(depth)
                                 self.time_data.append(time)
+                                
+                                # Update chart if we have new data
+                                if len(self.depth_data) > 1:
+                                    self.plot_depth_data()
                     
                     # Update status label
                     self.status_label.setText(f"Status: Connected (Data Points: {len(self.time_data_queue)})")
