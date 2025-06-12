@@ -1,11 +1,12 @@
 import sys
 import requests
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, QTime
 from datetime import datetime
 from collections import deque
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 import re
 
@@ -67,10 +68,17 @@ class TimeDataClient(QMainWindow):
         self.plot_button.clicked.connect(self.plot_depth_data)
         left_layout.addWidget(self.plot_button)
         
-        # Add Go button
+        # Add Go button and timer in horizontal layout
+        go_layout = QHBoxLayout()
         self.go_button = QPushButton("Start Vertical Profiling")
         self.go_button.clicked.connect(self.start_motor)
-        left_layout.addWidget(self.go_button)
+        go_layout.addWidget(self.go_button)
+        
+        # Add timer label
+        self.timer_label = QLabel("00:00:00")
+        self.timer_label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        go_layout.addWidget(self.timer_label)
+        left_layout.addLayout(go_layout)
         
         # Add test and force stop buttons
         test_buttons_layout = QHBoxLayout()
@@ -121,6 +129,10 @@ class TimeDataClient(QMainWindow):
         self.canvas = FigureCanvas(self.figure)
         right_layout.addWidget(self.canvas)
         
+        # Add navigation toolbar for zooming and panning
+        self.toolbar = NavigationToolbar(self.canvas, right_panel)
+        right_layout.addWidget(self.toolbar)
+        
         # Add left and right panels to main layout
         main_layout.addWidget(left_panel, 1)
         main_layout.addWidget(right_panel, 1)
@@ -138,6 +150,12 @@ class TimeDataClient(QMainWindow):
         
         # Connection status flag
         self.is_connected = False
+        
+        # Initialize timer
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_timer)
+        self.elapsed_time = QTime(0, 0)
+        self.is_timer_running = False
         
     def extract_depth(self, data_str):
         """从数据字符串中提取深度值"""
@@ -180,8 +198,11 @@ class TimeDataClient(QMainWindow):
         # Rotate x-axis labels to prevent overlap
         plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
         
-        # Adjust layout
+        # Adjust layout to prevent label cutoff
         self.figure.tight_layout()
+        
+        # Set initial view to show all data
+        ax.set_xlim(0, len(self.time_data))
         
         # Refresh canvas
         self.canvas.draw()
@@ -268,6 +289,10 @@ class TimeDataClient(QMainWindow):
             if response.status_code == 200:
                 self.text_display.append("Motor control started successfully")
                 self.status_label.setText("Status: Motor Control Running")
+                # Start timer
+                self.elapsed_time = QTime(0, 0)
+                self.timer.start(1000)  # Update every second
+                self.is_timer_running = True
             else:
                 self.text_display.append(f"Start failed: {response.text}")
                 self.text_display.append(f"Status code: {response.status_code}")
@@ -276,6 +301,11 @@ class TimeDataClient(QMainWindow):
             self.text_display.append(f"Connection error: {str(e)}")
             self.text_display.append("Unable to connect to server, please ensure ESP32 is running in AP mode.")
             self.status_label.setText("Status: Connection Failed")
+
+    def update_timer(self):
+        """Update timer display"""
+        self.elapsed_time = self.elapsed_time.addSecs(1)
+        self.timer_label.setText(self.elapsed_time.toString("hh:mm:ss"))
 
     def test_pull(self):
         """Test pull function"""
@@ -305,6 +335,10 @@ class TimeDataClient(QMainWindow):
             response = requests.post(f"{self.server_url}/motor/force/stop")
             if response.status_code == 200:
                 self.text_display.append("Force stop command sent")
+                # Stop timer
+                if self.is_timer_running:
+                    self.timer.stop()
+                    self.is_timer_running = False
             else:
                 self.text_display.append(f"Force stop failed: {response.text}")
         except requests.exceptions.RequestException:

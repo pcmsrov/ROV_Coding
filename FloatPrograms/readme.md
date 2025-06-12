@@ -1,3 +1,12 @@
+Maybe 電壓問題
+第二次vertical profiling 沒推到底
+開關ONLY Program
+更改，3個phrase計時
+
+每次initial connect??
+WIFI都重連??
+
+
 To Do
 Last run, without timer, switch only?
 >= 3min, ESP32 buffer size 15min? 5min
