@@ -1,6 +1,8 @@
 import sys
 import requests
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
+                            QHBoxLayout, QPushButton, QTextEdit, QLabel, 
+                            QLineEdit, QFormLayout, QSpinBox, QCheckBox)
 from PyQt5.QtCore import QTimer, QTime
 from datetime import datetime
 from collections import deque
@@ -22,15 +24,10 @@ import re
 companyID = "RN99"
 descendTime = 20 * 1000
 ascendTime = 30 * 1000
-#second round, switch only??
+waitTime = 10 * 1000  # 10 seconds waiting time
 
-#debug
-executeAscendTime = 60 * 1000  #10sec before ascending, count from starting desending
-
-#Competition
-#executeAscendTime = 120 * 1000  #2min / 120s before ascending, count from starting desending
-
-DEBUG_MODE = False  # 设置为true时启用详细调试信息
+debugMode = True  # 设置为true时启用详细调试信息
+useTimer = True
 #---------- Change Here ----------
 
 
@@ -40,6 +37,11 @@ class TimeDataClient(QMainWindow):
         super().__init__()
         self.setWindowTitle("MATE Float, Mosasaurus PCMS")
         self.setGeometry(100, 100, 1000, 600)
+        
+        # Set default font size
+        default_font = self.font()
+        default_font.setPointSize(12)
+        self.setFont(default_font)
         
         # Create central widget and layout
         central_widget = QWidget()
@@ -53,42 +55,93 @@ class TimeDataClient(QMainWindow):
         
         # Create labels
         self.status_label = QLabel("Status: Not Connected")
+        self.status_label.setFont(default_font)
         left_layout.addWidget(self.status_label)
         
-        # Create buttons
-        self.init_connect_button = QPushButton("Initial Connection")
-        self.init_connect_button.clicked.connect(self.initial_connection)
-        left_layout.addWidget(self.init_connect_button)
+        # Create parameter input form
+        param_form = QFormLayout()
         
+        # Company ID input
+        self.company_id_input = QLineEdit("RN99")
+        self.company_id_input.setFont(default_font)
+        param_form.addRow("Company ID:", self.company_id_input)
+        
+        # Descend Time input (in seconds)
+        self.descend_time_input = QSpinBox()
+        self.descend_time_input.setRange(1, 300)
+        self.descend_time_input.setValue(20)
+        self.descend_time_input.setSuffix(" sec")
+        self.descend_time_input.setFont(default_font)
+        param_form.addRow("DescendTime:", self.descend_time_input)
+        
+        # Wait Time input (in seconds)
+        self.wait_time_input = QSpinBox()
+        self.wait_time_input.setRange(1, 300)
+        self.wait_time_input.setValue(10)
+        self.wait_time_input.setSuffix(" sec")
+        self.wait_time_input.setFont(default_font)
+        param_form.addRow("WaitTime:", self.wait_time_input)
+        
+        # Ascend Time input (in seconds)
+        self.ascend_time_input = QSpinBox()
+        self.ascend_time_input.setRange(1, 300)
+        self.ascend_time_input.setValue(30)
+        self.ascend_time_input.setSuffix(" sec")
+        self.ascend_time_input.setFont(default_font)
+        param_form.addRow("AscendTime:", self.ascend_time_input)
+        
+        # Create horizontal layout for checkboxes
+        checkbox_layout = QHBoxLayout()
+        
+        # Use Timer toggle (left)
+        self.use_timer_checkbox = QCheckBox("Use Timer")
+        self.use_timer_checkbox.setChecked(useTimer)
+        self.use_timer_checkbox.stateChanged.connect(self.on_use_timer_changed)
+        self.use_timer_checkbox.setFont(default_font)
+        checkbox_layout.addWidget(self.use_timer_checkbox)
+        
+        # Debug Mode toggle (right)
+        self.debugMode_checkbox = QCheckBox("Debug Mode")
+        self.debugMode_checkbox.setChecked(debugMode)
+        self.debugMode_checkbox.stateChanged.connect(self.on_debugMode_changed)
+        self.debugMode_checkbox.setFont(default_font)
+        checkbox_layout.addWidget(self.debugMode_checkbox)
+        
+        # Add checkbox layout to form
+        param_form.addRow("", checkbox_layout)
+        
+        # Add form to left layout
+        left_layout.addLayout(param_form)
+        
+        # Create single button for both initial connection and parameter update
+        self.connection_button = QPushButton("Connect/Update Parameters")
+        self.connection_button.clicked.connect(self.handle_connection)
+        self.connection_button.setFont(default_font)
+        left_layout.addWidget(self.connection_button)
+        
+        # Create buttons
         self.fetch_button = QPushButton("Fetch Data")
         self.fetch_button.clicked.connect(self.fetch_data)
+        self.fetch_button.setFont(default_font)
         left_layout.addWidget(self.fetch_button)
         
-        self.plot_button = QPushButton("Show Depth Chart")
-        self.plot_button.clicked.connect(self.plot_depth_data)
-        left_layout.addWidget(self.plot_button)
-        
-        # Add Go button and timer in horizontal layout
-        go_layout = QHBoxLayout()
+        # Add Go button
         self.go_button = QPushButton("Start Vertical Profiling")
         self.go_button.clicked.connect(self.start_motor)
-        go_layout.addWidget(self.go_button)
-        
-        # Add timer label
-        self.timer_label = QLabel("00:00:00")
-        self.timer_label.setStyleSheet("font-size: 16px; font-weight: bold;")
-        go_layout.addWidget(self.timer_label)
-        left_layout.addLayout(go_layout)
+        self.go_button.setFont(default_font)
+        left_layout.addWidget(self.go_button)
         
         # Add test and force stop buttons
         test_buttons_layout = QHBoxLayout()
         
         self.test_pull_button = QPushButton("Test Pull")
         self.test_pull_button.clicked.connect(self.test_pull)
+        self.test_pull_button.setFont(default_font)
         test_buttons_layout.addWidget(self.test_pull_button)
         
         self.test_push_button = QPushButton("Test Push")
         self.test_push_button.clicked.connect(self.test_push)
+        self.test_push_button.setFont(default_font)
         test_buttons_layout.addWidget(self.test_push_button)
         
         self.force_stop_button = QPushButton("Force Stop")
@@ -108,6 +161,7 @@ class TimeDataClient(QMainWindow):
                 background-color: #cc0000;
             }
         """)
+        self.force_stop_button.setFont(default_font)
         test_buttons_layout.addWidget(self.force_stop_button)
         
         left_layout.addLayout(test_buttons_layout)
@@ -115,9 +169,7 @@ class TimeDataClient(QMainWindow):
         # Create text display area
         self.text_display = QTextEdit()
         self.text_display.setReadOnly(True)
-        font = self.text_display.font()
-        font.setPointSize(12)  # Set font size to 12 points
-        self.text_display.setFont(font)
+        self.text_display.setFont(default_font)
         left_layout.addWidget(self.text_display)
         
         # Right chart area
@@ -207,44 +259,71 @@ class TimeDataClient(QMainWindow):
         # Refresh canvas
         self.canvas.draw()
         
-    def initial_connection(self):
+    def on_debugMode_changed(self, state):
+        """Handle debug mode checkbox state change"""
+        global debugMode
+        debugMode = bool(state)
+        if self.is_connected:
+            self.handle_connection()  # Automatically update parameters when debug mode changes
+            
+    def on_use_timer_changed(self, state):
+        """Handle use timer checkbox state change"""
+        if self.is_connected:
+            self.handle_connection()  # Automatically update parameters when use timer changes
+            
+    def handle_connection(self):
+        """Handle both initial connection and parameter update"""
         try:
             # Get current UTC time
             utc_time = datetime.utcnow().strftime("%H:%M:%S")
             
+            # Get values from input fields
+            company_id = self.company_id_input.text()
+            descend_time = self.descend_time_input.value() * 1000  # Convert to milliseconds
+            wait_time = self.wait_time_input.value() * 1000
+            ascend_time = self.ascend_time_input.value() * 1000
+            
             # Prepare data to send
             data = {
                 "utc_time": utc_time,
-                "descend_time": descendTime,
-                "ascend_time": ascendTime,
-                "execute_ascend_time": executeAscendTime,
-                "debug_mode": DEBUG_MODE,
-                "company_id": companyID
+                "descend_time": descend_time,
+                "ascend_time": ascend_time,
+                "wait_time": wait_time,
+                "debug_mode": self.debugMode_checkbox.isChecked(),
+                "use_timer": self.use_timer_checkbox.isChecked(),
+                "company_id": company_id
             }
             
-            # Send initial connection request
+            # Send request
             response = requests.post(f"{self.server_url}/init", json=data)
             
             if response.status_code == 200:
-                self.status_label.setText("Status: Initial Connection Successful")
-                self.is_connected = True
-                # Add initial connection information to text display
-                self.text_display.append("=== Initial Connection Information ===")
-                self.text_display.append(f"Company ID: {companyID}")
+                if not self.is_connected:
+                    self.status_label.setText("Status: Initial Connection Successful")
+                    self.is_connected = True
+                    self.text_display.append("=== Initial Connection Information ===")
+                else:
+                    self.status_label.setText("Status: Parameters Updated Successfully")
+                    self.text_display.append("=== Parameters Updated ===")
+                
+                self.text_display.append(f"Company ID: {company_id}")
                 self.text_display.append(f"UTC Time: {utc_time}")
-                self.text_display.append(f"Descend Time: {descendTime}ms")
-                self.text_display.append(f"Ascend Time: {ascendTime}ms")
-                self.text_display.append(f"Wait Time: {executeAscendTime}ms")
-                self.text_display.append(f"Debug Mode: {'Enabled' if DEBUG_MODE else 'Disabled'}")
+                self.text_display.append(f"Descend Time: {descend_time}ms")
+                self.text_display.append(f"Ascend Time: {ascend_time}ms")
+                self.text_display.append(f"Wait Time: {wait_time}ms")
+                self.text_display.append(f"Debug Mode: {'Enabled' if self.debugMode_checkbox.isChecked() else 'Disabled'}")
+                self.text_display.append(f"Use Timer: {'Enabled' if self.use_timer_checkbox.isChecked() else 'Disabled'}")
                 self.text_display.append("====================\n")
             else:
-                self.status_label.setText("Status: Initial Connection Failed")
-                self.text_display.append("Initial connection failed, please try again.")
+                self.status_label.setText("Status: Connection Failed")
+                self.text_display.append("Connection failed, please try again.")
+                self.is_connected = False
                 
         except requests.exceptions.RequestException:
             self.status_label.setText("Status: Connection Failed")
             self.text_display.append("Unable to connect to server, please ensure ESP32 is running in AP mode.")
-        
+            self.is_connected = False
+            
     def fetch_data(self):
         try:
             # Get data

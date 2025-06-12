@@ -17,8 +17,9 @@ const char* password = "pcmsrov22";       // WiFi密码
 String companyID = "NotSetYet";
 bool DEBUG_MODE = false;  // 设置为true时启用详细调试信息
 unsigned long descendTime = 7300;
+unsigned long waitTime = 10000;
 unsigned long ascendTime = 7300;
-int executeAscendTime = 120 * 1000; // 2min 秒等待时间
+bool useTimer = false;
 
 float depthData = 0.0;  // Will be updated with real sensor data
 
@@ -58,7 +59,7 @@ enum Phase {
 };
 
 Phase currentPhase = IDLE;
-unsigned long startTime = 0;
+unsigned long phaseStartTime = 0;
 bool startProcess = false;
 bool progress = false;
 bool motorRunning = false;
@@ -178,9 +179,10 @@ void handleInit() {
     utcTime = doc["utc_time"].as<String>();
     descendTime = doc["descend_time"].as<unsigned long>();
     ascendTime = doc["ascend_time"].as<unsigned long>();
-    executeAscendTime = doc["execute_ascend_time"].as<unsigned long>();
-    DEBUG_MODE = doc["debug_mode"].as<bool>();  // 接收DEBUG_MODE参数
-    companyID = doc["company_id"].as<String>();  // 接收companyID参数
+    waitTime = doc["wait_time"].as<unsigned long>();
+    DEBUG_MODE = doc["debug_mode"].as<bool>();
+    useTimer = doc["use_timer"].as<bool>();  // 接收useTimer参数
+    companyID = doc["company_id"].as<String>();
     
     // 解析UTC时间字符串
     int hours = utcTime.substring(0, 2).toInt();
@@ -207,10 +209,12 @@ void handleInit() {
       Serial.println(descendTime);
       Serial.print("Ascend Time: ");
       Serial.println(ascendTime);
-      Serial.print("Execute Ascend Time: ");
-      Serial.println(executeAscendTime);
+      Serial.print("Wait Time: ");
+      Serial.println(waitTime);
       Serial.print("Debug Mode: ");
       Serial.println(DEBUG_MODE ? "Enabled" : "Disabled");
+      Serial.print("Use Timer: ");
+      Serial.println(useTimer ? "Enabled" : "Disabled");
       Serial.print("Total seconds: ");
       Serial.println(totalSeconds);
     }
@@ -374,7 +378,7 @@ void loop() {
       Serial.println(progress);
     }
     progress = true;
-    startTime = millis();
+    phaseStartTime = millis();  // 初始化阶段开始时间
     startMotorForward();
     if (DEBUG_MODE) {
       Serial.println("Starting descending phase");
@@ -398,19 +402,20 @@ void loop() {
 
     // 每1秒打印状态
     if (millis() % 1000 < 500 && DEBUG_MODE) {
-      Serial.print("Time elapsed: ");
-      Serial.print((millis() - startTime) / 1000);
+      Serial.print("Phase time elapsed: ");
+      Serial.print((millis() - phaseStartTime) / 1000);
       Serial.print("s, Motor running: ");
       Serial.println(motorRunning ? "Yes" : "No");
     }
     
     switch (currentPhase) {
       case DESCENDING:
-        if (digitalRead(TopLimitBtn) == LOW || millis() - startTime >= descendTime) {
+        if (digitalRead(TopLimitBtn) == LOW || (useTimer && millis() - phaseStartTime >= descendTime)) {
           startMotorReverse();  //move back a little
           delay(300);
           stopMotor();
           currentPhase = WAITING;
+          phaseStartTime = millis();  // 更新为等待阶段开始时间
           if (DEBUG_MODE) {
             Serial.println("Descending phase completed");
           }
@@ -418,9 +423,10 @@ void loop() {
         break;
         
       case WAITING:
-        if (millis() - startTime >= executeAscendTime) {
+        if (millis() - phaseStartTime >= waitTime) {  // 只使用等待时间
           startMotorReverse();
           currentPhase = ASCENDING;
+          phaseStartTime = millis();  // 更新为上升阶段开始时间
           if (DEBUG_MODE) {
             Serial.println("Starting ascending phase");
           }
@@ -428,7 +434,7 @@ void loop() {
         break;
         
       case ASCENDING:
-        if (digitalRead(DownLimitBtn) == LOW || millis() - startTime >= ascendTime + executeAscendTime) {
+        if (digitalRead(DownLimitBtn) == LOW || (useTimer && millis() - phaseStartTime >= ascendTime)) {  // 只使用上升时间
           startMotorForward(); //move back a little
           delay(300);
           stopMotor();
