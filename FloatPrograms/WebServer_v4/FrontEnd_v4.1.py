@@ -125,11 +125,19 @@ class TimeDataClient(QMainWindow):
         self.fetch_button.setFont(default_font)
         left_layout.addWidget(self.fetch_button)
         
-        # Add Go button
+        # Add Go button and timer in horizontal layout
+        go_layout = QHBoxLayout()
         self.go_button = QPushButton("Start Vertical Profiling")
         self.go_button.clicked.connect(self.start_motor)
         self.go_button.setFont(default_font)
-        left_layout.addWidget(self.go_button)
+        go_layout.addWidget(self.go_button)
+        
+        # Add timer label
+        self.timer_label = QLabel("00:00:00")
+        self.timer_label.setStyleSheet("font-size: 12px; font-weight: bold;")
+        self.timer_label.setFont(default_font)
+        go_layout.addWidget(self.timer_label)
+        left_layout.addLayout(go_layout)
         
         # Add test and force stop buttons
         test_buttons_layout = QHBoxLayout()
