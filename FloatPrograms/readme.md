@@ -10,6 +10,12 @@ show data table, side scroll
 
 antena, 延長線，螺絲
 
+
+Float Pinout, Editable Files
+https://docs.google.com/presentation/d/1oLM84ONJYGD7PrpeK730wvq_iQj6tmpVg91eRsLw3xo/edit?usp=sharing
+
+
+
 ----- Attention -----
 DVR8871 Pin soldering Loose?
 IN1, IN2, GND
