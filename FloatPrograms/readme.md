@@ -1,15 +1,12 @@
 Issue? ----------
-Maybe 電壓問題
-第二次vertical profiling 沒推到底
-開關ONLY Program
-更改，3個phrase計時
-
 每次initial connect??
 WIFI都重連??
 
 
 To Do ----------
-clear data button
+clear data button?
+float data buffer 5min?
+
 
 Last run, without timer, switch only?
 >= 3min, ESP32 buffer size 15min? 5min
@@ -23,10 +20,11 @@ show data table, side scroll
 antena, 延長線，螺絲
 
 電壓檢測
+
 狀態指示燈
 
 
-Float Pinout, Editable Files
+===== Float Pinout, Editable Files =====
 https://docs.google.com/presentation/d/1oLM84ONJYGD7PrpeK730wvq_iQj6tmpVg91eRsLw3xo/edit?usp=sharing
 
 

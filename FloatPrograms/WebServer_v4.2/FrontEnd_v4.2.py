@@ -22,10 +22,12 @@ import re
 #in get paramemters wrong, change it, and restart the front end program 
 
 #float motor time adjuest, in miliseconds
-companyID = "RN99"
-descendTime = 20 * 1000
-ascendTime = 30 * 1000
-waitTime = 30 * 1000  # 10 seconds waiting time
+companyID = "RN256"
+
+#time unit, second
+descendTime = 20
+ascendTime = 30
+waitTime = 30
 
 debugMode = False  # 设置为true时启用详细调试信息
 useTimer = False
@@ -76,14 +78,14 @@ class TimeDataClient(QMainWindow):
         param_form = QFormLayout()
         
         # Company ID input
-        self.company_id_input = QLineEdit("RN99")
+        self.company_id_input = QLineEdit(companyID)
         self.company_id_input.setFont(default_font)
         param_form.addRow("Company ID:", self.company_id_input)
         
         # Descend Time input (in seconds)
         self.descend_time_input = QSpinBox()
         self.descend_time_input.setRange(1, 300)
-        self.descend_time_input.setValue(20)
+        self.descend_time_input.setValue(descendTime)
         self.descend_time_input.setSuffix(" sec")
         self.descend_time_input.setFont(default_font)
         param_form.addRow("DescendTime:", self.descend_time_input)
@@ -91,7 +93,7 @@ class TimeDataClient(QMainWindow):
         # Wait Time input (in seconds)
         self.wait_time_input = QSpinBox()
         self.wait_time_input.setRange(1, 300)
-        self.wait_time_input.setValue(10)
+        self.wait_time_input.setValue(waitTime)
         self.wait_time_input.setSuffix(" sec")
         self.wait_time_input.setFont(default_font)
         param_form.addRow("WaitTime:", self.wait_time_input)
@@ -99,7 +101,7 @@ class TimeDataClient(QMainWindow):
         # Ascend Time input (in seconds)
         self.ascend_time_input = QSpinBox()
         self.ascend_time_input.setRange(1, 300)
-        self.ascend_time_input.setValue(30)
+        self.ascend_time_input.setValue(ascendTime)
         self.ascend_time_input.setSuffix(" sec")
         self.ascend_time_input.setFont(default_font)
         param_form.addRow("AscendTime:", self.ascend_time_input)

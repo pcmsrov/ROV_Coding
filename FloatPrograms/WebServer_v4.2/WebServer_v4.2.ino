@@ -394,6 +394,8 @@ void loop() {
   if (testPullAll) {
     startMotorForward();
     if (digitalRead(TopLimitBtn) == LOW) {
+      startMotorReverse();
+      delay(100);
       stopMotor();
       testPullAll = false;
       if (DEBUG_MODE) {
@@ -406,6 +408,8 @@ void loop() {
   if (testPushAll) {
     startMotorReverse();
     if (digitalRead(DownLimitBtn) == LOW) {
+      startMotorForward();
+      delay(100);
       stopMotor();
       testPushAll = false;
       if (DEBUG_MODE) {
@@ -458,7 +462,7 @@ void loop() {
       case DESCENDING:
         if (digitalRead(TopLimitBtn) == LOW || (useTimer && millis() - phaseStartTime >= descendTime)) {
           startMotorReverse();  //move back a little
-          delay(300);
+          delay(100);
           stopMotor();
           currentPhase = WAITING;
           phaseStartTime = millis();  // 更新为等待阶段开始时间
@@ -482,7 +486,7 @@ void loop() {
       case ASCENDING:
         if (digitalRead(DownLimitBtn) == LOW || (useTimer && millis() - phaseStartTime >= ascendTime)) {  // 只使用上升时间
           startMotorForward(); //move back a little
-          delay(300);
+          delay(100);
           stopMotor();
           currentPhase = COMPLETED;
           progress = false;
