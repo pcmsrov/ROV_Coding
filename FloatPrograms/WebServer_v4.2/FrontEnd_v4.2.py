@@ -161,15 +161,15 @@ class TimeDataClient(QMainWindow):
         # 第一行：Test Pull, Test Push 和 Force Stop
         first_row_layout = QHBoxLayout()
         
-        self.test_pull_button = QPushButton("Test Pull")
-        self.test_pull_button.clicked.connect(self.test_pull)
-        self.test_pull_button.setFont(default_font)
-        first_row_layout.addWidget(self.test_pull_button)
+        self.test_pull_all_button = QPushButton("Pull All")
+        self.test_pull_all_button.clicked.connect(self.test_pull_all)
+        self.test_pull_all_button.setFont(default_font)
+        first_row_layout.addWidget(self.test_pull_all_button)
         
-        self.test_push_button = QPushButton("Test Push")
-        self.test_push_button.clicked.connect(self.test_push)
-        self.test_push_button.setFont(default_font)
-        first_row_layout.addWidget(self.test_push_button)
+        self.test_push_all_button = QPushButton("Push All")
+        self.test_push_all_button.clicked.connect(self.test_push_all)
+        self.test_push_all_button.setFont(default_font)
+        first_row_layout.addWidget(self.test_push_all_button)
         
         self.force_stop_button = QPushButton("Force Stop")
         self.force_stop_button.clicked.connect(self.force_stop)
@@ -194,15 +194,15 @@ class TimeDataClient(QMainWindow):
         # 第二行：Pull All 和 Push All
         second_row_layout = QHBoxLayout()
         
-        self.test_pull_all_button = QPushButton("Pull All")
-        self.test_pull_all_button.clicked.connect(self.test_pull_all)
-        self.test_pull_all_button.setFont(default_font)
-        second_row_layout.addWidget(self.test_pull_all_button)
+        self.test_pull_button = QPushButton("Test Pull")
+        self.test_pull_button.clicked.connect(self.test_pull)
+        self.test_pull_button.setFont(default_font)
+        second_row_layout.addWidget(self.test_pull_button)
         
-        self.test_push_all_button = QPushButton("Push All")
-        self.test_push_all_button.clicked.connect(self.test_push_all)
-        self.test_push_all_button.setFont(default_font)
-        second_row_layout.addWidget(self.test_push_all_button)
+        self.test_push_button = QPushButton("Test Push")
+        self.test_push_button.clicked.connect(self.test_push)
+        self.test_push_button.setFont(default_font)
+        second_row_layout.addWidget(self.test_push_button)
         
         # 添加两行布局到主测试按钮布局
         test_buttons_layout.addLayout(first_row_layout)
