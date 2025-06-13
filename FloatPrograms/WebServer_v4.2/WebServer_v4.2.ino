@@ -23,8 +23,8 @@ bool useTimer = false;
 
 float depthData = 0.0;  // Will be updated with real sensor data
 
-// 定义缓冲区大小 (3分钟 * 12次/分钟 = 36个数据点)
-const int BUFFER_SIZE = 36;
+// 定义缓冲区大小 (5分钟 * 12次/分钟 = 36个数据点)
+const int BUFFER_SIZE = 60;
 String timeBuffer[BUFFER_SIZE];
 float depthBuffer[BUFFER_SIZE];  // 新增深度数据缓冲区
 int writeIndex = 0;        // 写入位置
@@ -378,14 +378,14 @@ void loop() {
   // Test functionality
   if (testPull) {
     startMotorForward();
-    delay(500);
+    delay(250);
     stopMotor();
     testPull = false;
   }
   
   if (testPush) {
     startMotorReverse();
-    delay(500);
+    delay(250);
     stopMotor();
     testPush = false;
   }
@@ -395,7 +395,7 @@ void loop() {
     startMotorForward();
     if (digitalRead(TopLimitBtn) == LOW) {
       startMotorReverse();
-      delay(100);
+      delay(150);
       stopMotor();
       testPullAll = false;
       if (DEBUG_MODE) {
@@ -409,7 +409,7 @@ void loop() {
     startMotorReverse();
     if (digitalRead(DownLimitBtn) == LOW) {
       startMotorForward();
-      delay(100);
+      delay(150);
       stopMotor();
       testPushAll = false;
       if (DEBUG_MODE) {
