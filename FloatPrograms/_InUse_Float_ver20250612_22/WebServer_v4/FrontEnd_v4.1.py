@@ -24,12 +24,11 @@ import re
 companyID = "RN99"
 descendTime = 20 * 1000
 ascendTime = 30 * 1000
-waitTime = 10 * 1000  # 10 seconds waiting time
+waitTime = 100 * 1000  # 10 seconds waiting time
 
-debugMode = True  # 设置为true时启用详细调试信息
-useTimer = True
+debugMode = False  # 设置为true时启用详细调试信息
+useTimer = False
 #---------- Change Here ----------
-
 
 
 class TimeDataClient(QMainWindow):

@@ -1,3 +1,4 @@
+Issue? ----------
 Maybe 電壓問題
 第二次vertical profiling 沒推到底
 開關ONLY Program
@@ -7,7 +8,9 @@ Maybe 電壓問題
 WIFI都重連??
 
 
-To Do
+To Do ----------
+clear data button
+
 Last run, without timer, switch only?
 >= 3min, ESP32 buffer size 15min? 5min
 program test, preparation days
@@ -18,6 +21,9 @@ first get data, set as offset
 show data table, side scroll
 
 antena, 延長線，螺絲
+
+電壓檢測
+狀態指示燈
 
 
 Float Pinout, Editable Files
