@@ -23,8 +23,8 @@ bool useTimer = false;
 
 float depthData = 0.0;  // Will be updated with real sensor data
 
-// 定义缓冲区大小 (3分钟 * 12次/分钟 = 36个数据点)
-const int BUFFER_SIZE = 36;
+// 定义缓冲区大小 (5分钟 * 12次/分钟 = 36个数据点)
+const int BUFFER_SIZE = 60;
 String timeBuffer[BUFFER_SIZE];
 float depthBuffer[BUFFER_SIZE];  // 新增深度数据缓冲区
 int writeIndex = 0;        // 写入位置
@@ -66,6 +66,8 @@ bool motorRunning = false;
 
 bool testPull = false;
 bool testPush = false;
+bool testPullAll = false;  // 新增：测试完全拉出
+bool testPushAll = false;  // 新增：测试完全推入
 bool forceStop = false;
 
 String inputString = "";      // 存储接收到的串口数据
@@ -277,6 +279,24 @@ void handleTestPush() {
   }
 }
 
+void handleTestPullAll() {
+  if (server.method() == HTTP_POST) {
+    testPullAll = true;
+    server.send(200, "text/plain", "Test pull all started");
+  } else {
+    server.send(405, "text/plain", "Method Not Allowed");
+  }
+}
+
+void handleTestPushAll() {
+  if (server.method() == HTTP_POST) {
+    testPushAll = true;
+    server.send(200, "text/plain", "Test push all started");
+  } else {
+    server.send(405, "text/plain", "Method Not Allowed");
+  }
+}
+
 void handleForceStop() {
   if (server.method() == HTTP_POST) {
     forceStop = true;
@@ -331,6 +351,8 @@ void setup() {
   server.on("/motor/start", HTTP_POST, handleMotorControl);
   server.on("/motor/test/pull", HTTP_POST, handleTestPull);
   server.on("/motor/test/push", HTTP_POST, handleTestPush);
+  server.on("/motor/test/pullall", HTTP_POST, handleTestPullAll);  // 新增路由
+  server.on("/motor/test/pushall", HTTP_POST, handleTestPushAll);  // 新增路由
   server.on("/motor/force/stop", HTTP_POST, handleForceStop);
   server.onNotFound(handleNotFound);
   
@@ -356,16 +378,44 @@ void loop() {
   // Test functionality
   if (testPull) {
     startMotorForward();
-    delay(500);
+    delay(250);
     stopMotor();
     testPull = false;
   }
   
   if (testPush) {
     startMotorReverse();
-    delay(500);
+    delay(250);
     stopMotor();
     testPush = false;
+  }
+
+  // 新增：测试完全拉出功能
+  if (testPullAll) {
+    startMotorForward();
+    if (digitalRead(TopLimitBtn) == LOW) {
+      startMotorReverse();
+      delay(150);
+      stopMotor();
+      testPullAll = false;
+      if (DEBUG_MODE) {
+        Serial.println("Pull all completed - Top limit reached");
+      }
+    }
+  }
+
+  // 新增：测试完全推入功能
+  if (testPushAll) {
+    startMotorReverse();
+    if (digitalRead(DownLimitBtn) == LOW) {
+      startMotorForward();
+      delay(150);
+      stopMotor();
+      testPushAll = false;
+      if (DEBUG_MODE) {
+        Serial.println("Push all completed - Down limit reached");
+      }
+    }
   }
   
   // Check if process should start
@@ -412,7 +462,7 @@ void loop() {
       case DESCENDING:
         if (digitalRead(TopLimitBtn) == LOW || (useTimer && millis() - phaseStartTime >= descendTime)) {
           startMotorReverse();  //move back a little
-          delay(300);
+          delay(100);
           stopMotor();
           currentPhase = WAITING;
           phaseStartTime = millis();  // 更新为等待阶段开始时间
@@ -436,7 +486,7 @@ void loop() {
       case ASCENDING:
         if (digitalRead(DownLimitBtn) == LOW || (useTimer && millis() - phaseStartTime >= ascendTime)) {  // 只使用上升时间
           startMotorForward(); //move back a little
-          delay(300);
+          delay(100);
           stopMotor();
           currentPhase = COMPLETED;
           progress = false;

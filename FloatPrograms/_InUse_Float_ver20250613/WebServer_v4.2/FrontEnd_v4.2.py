@@ -2,7 +2,8 @@ import sys
 import requests
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                             QHBoxLayout, QPushButton, QTextEdit, QLabel, 
-                            QLineEdit, QFormLayout, QSpinBox, QCheckBox)
+                            QLineEdit, QFormLayout, QSpinBox, QCheckBox,
+                            QSplitter)
 from PyQt5.QtCore import QTimer, QTime
 from datetime import datetime
 from collections import deque
@@ -21,14 +22,17 @@ import re
 #in get paramemters wrong, change it, and restart the front end program 
 
 #float motor time adjuest, in miliseconds
-companyID = "RN99"
-descendTime = 20 * 1000
-ascendTime = 30 * 1000
-waitTime = 100 * 1000  # 10 seconds waiting time
+companyID = "RN256"
+
+#time unit, second
+descendTime = 20
+ascendTime = 30
+waitTime = 30
 
 debugMode = False  # 设置为true时启用详细调试信息
 useTimer = False
 #---------- Change Here ----------
+
 
 
 class TimeDataClient(QMainWindow):
@@ -46,11 +50,24 @@ class TimeDataClient(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QHBoxLayout(central_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)  # 移除边距
+        
+        # 创建分割器
+        splitter = QSplitter()
+        splitter.setHandleWidth(5)  # 设置分割线宽度
+        splitter.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #cccccc;
+            }
+            QSplitter::handle:hover {
+                background-color: #999999;
+            }
+        """)
         
         # Left control panel
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
-        left_panel.setFixedWidth(400)  # Set fixed width for left panel
+        left_layout.setContentsMargins(10, 10, 10, 10)  # 添加内边距
         
         # Create labels
         self.status_label = QLabel("Status: Not Connected")
@@ -61,14 +78,14 @@ class TimeDataClient(QMainWindow):
         param_form = QFormLayout()
         
         # Company ID input
-        self.company_id_input = QLineEdit("RN99")
+        self.company_id_input = QLineEdit(companyID)
         self.company_id_input.setFont(default_font)
         param_form.addRow("Company ID:", self.company_id_input)
         
         # Descend Time input (in seconds)
         self.descend_time_input = QSpinBox()
         self.descend_time_input.setRange(1, 300)
-        self.descend_time_input.setValue(20)
+        self.descend_time_input.setValue(descendTime)
         self.descend_time_input.setSuffix(" sec")
         self.descend_time_input.setFont(default_font)
         param_form.addRow("DescendTime:", self.descend_time_input)
@@ -76,7 +93,7 @@ class TimeDataClient(QMainWindow):
         # Wait Time input (in seconds)
         self.wait_time_input = QSpinBox()
         self.wait_time_input.setRange(1, 300)
-        self.wait_time_input.setValue(10)
+        self.wait_time_input.setValue(waitTime)
         self.wait_time_input.setSuffix(" sec")
         self.wait_time_input.setFont(default_font)
         param_form.addRow("WaitTime:", self.wait_time_input)
@@ -84,7 +101,7 @@ class TimeDataClient(QMainWindow):
         # Ascend Time input (in seconds)
         self.ascend_time_input = QSpinBox()
         self.ascend_time_input.setRange(1, 300)
-        self.ascend_time_input.setValue(30)
+        self.ascend_time_input.setValue(ascendTime)
         self.ascend_time_input.setSuffix(" sec")
         self.ascend_time_input.setFont(default_font)
         param_form.addRow("AscendTime:", self.ascend_time_input)
@@ -139,17 +156,20 @@ class TimeDataClient(QMainWindow):
         left_layout.addLayout(go_layout)
         
         # Add test and force stop buttons
-        test_buttons_layout = QHBoxLayout()
+        test_buttons_layout = QVBoxLayout()  # 改为垂直布局
         
-        self.test_pull_button = QPushButton("Test Pull")
-        self.test_pull_button.clicked.connect(self.test_pull)
-        self.test_pull_button.setFont(default_font)
-        test_buttons_layout.addWidget(self.test_pull_button)
+        # 第一行：Test Pull, Test Push 和 Force Stop
+        first_row_layout = QHBoxLayout()
         
-        self.test_push_button = QPushButton("Test Push")
-        self.test_push_button.clicked.connect(self.test_push)
-        self.test_push_button.setFont(default_font)
-        test_buttons_layout.addWidget(self.test_push_button)
+        self.test_pull_all_button = QPushButton("Pull All")
+        self.test_pull_all_button.clicked.connect(self.test_pull_all)
+        self.test_pull_all_button.setFont(default_font)
+        first_row_layout.addWidget(self.test_pull_all_button)
+        
+        self.test_push_all_button = QPushButton("Push All")
+        self.test_push_all_button.clicked.connect(self.test_push_all)
+        self.test_push_all_button.setFont(default_font)
+        first_row_layout.addWidget(self.test_push_all_button)
         
         self.force_stop_button = QPushButton("Force Stop")
         self.force_stop_button.clicked.connect(self.force_stop)
@@ -169,7 +189,24 @@ class TimeDataClient(QMainWindow):
             }
         """)
         self.force_stop_button.setFont(default_font)
-        test_buttons_layout.addWidget(self.force_stop_button)
+        first_row_layout.addWidget(self.force_stop_button)
+        
+        # 第二行：Pull All 和 Push All
+        second_row_layout = QHBoxLayout()
+        
+        self.test_pull_button = QPushButton("Test Pull")
+        self.test_pull_button.clicked.connect(self.test_pull)
+        self.test_pull_button.setFont(default_font)
+        second_row_layout.addWidget(self.test_pull_button)
+        
+        self.test_push_button = QPushButton("Test Push")
+        self.test_push_button.clicked.connect(self.test_push)
+        self.test_push_button.setFont(default_font)
+        second_row_layout.addWidget(self.test_push_button)
+        
+        # 添加两行布局到主测试按钮布局
+        test_buttons_layout.addLayout(first_row_layout)
+        test_buttons_layout.addLayout(second_row_layout)
         
         left_layout.addLayout(test_buttons_layout)
         
@@ -182,6 +219,7 @@ class TimeDataClient(QMainWindow):
         # Right chart area
         right_panel = QWidget()
         right_layout = QVBoxLayout(right_panel)
+        right_layout.setContentsMargins(10, 10, 10, 10)  # 添加内边距
         
         # Create matplotlib chart
         self.figure = Figure(figsize=(6, 4))
@@ -192,9 +230,19 @@ class TimeDataClient(QMainWindow):
         self.toolbar = NavigationToolbar(self.canvas, right_panel)
         right_layout.addWidget(self.toolbar)
         
-        # Add left and right panels to main layout
-        main_layout.addWidget(left_panel, 1)
-        main_layout.addWidget(right_panel, 1)
+        # 将面板添加到分割器
+        splitter.addWidget(left_panel)
+        splitter.addWidget(right_panel)
+        
+        # 设置初始大小比例（40:60）
+        splitter.setSizes([400, 600])
+        
+        # 将分割器添加到主布局
+        main_layout.addWidget(splitter)
+        
+        # 设置分割器可以拉伸
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 1)
         
         # Server address
         self.server_url = "http://192.168.4.1"  # Default ESP32 AP IP address
@@ -412,6 +460,28 @@ class TimeDataClient(QMainWindow):
                 self.text_display.append("Test push started")
             else:
                 self.text_display.append(f"Test push failed: {response.text}")
+        except requests.exceptions.RequestException:
+            self.text_display.append("Unable to connect to server")
+
+    def test_pull_all(self):
+        """Test pull all function"""
+        try:
+            response = requests.post(f"{self.server_url}/motor/test/pullall")
+            if response.status_code == 200:
+                self.text_display.append("Test pull all started")
+            else:
+                self.text_display.append(f"Test pull all failed: {response.text}")
+        except requests.exceptions.RequestException:
+            self.text_display.append("Unable to connect to server")
+
+    def test_push_all(self):
+        """Test push all function"""
+        try:
+            response = requests.post(f"{self.server_url}/motor/test/pushall")
+            if response.status_code == 200:
+                self.text_display.append("Test push all started")
+            else:
+                self.text_display.append(f"Test push all failed: {response.text}")
         except requests.exceptions.RequestException:
             self.text_display.append("Unable to connect to server")
 
