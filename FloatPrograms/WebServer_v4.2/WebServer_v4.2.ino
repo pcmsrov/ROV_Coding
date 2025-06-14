@@ -392,28 +392,46 @@ void loop() {
 
   // 新增：测试完全拉出功能
   if (testPullAll) {
-    startMotorForward();
-    if (digitalRead(TopLimitBtn) == LOW) {
-      startMotorReverse();
-      delay(250);
+    if (forceStop) {
       stopMotor();
       testPullAll = false;
+      forceStop = false;
       if (DEBUG_MODE) {
-        Serial.println("Pull all completed - Top limit reached");
+        Serial.println("Pull all test force stopped!");
+      }
+    } else {
+      startMotorForward();
+      if (digitalRead(TopLimitBtn) == LOW) {
+        startMotorReverse();
+        delay(250);
+        stopMotor();
+        testPullAll = false;
+        if (DEBUG_MODE) {
+          Serial.println("Pull all completed - Top limit reached");
+        }
       }
     }
   }
 
   // 新增：测试完全推入功能
   if (testPushAll) {
-    startMotorReverse();
-    if (digitalRead(DownLimitBtn) == LOW) {
-      startMotorForward();
-      delay(250);
+    if (forceStop) {
       stopMotor();
       testPushAll = false;
+      forceStop = false;
       if (DEBUG_MODE) {
-        Serial.println("Push all completed - Down limit reached");
+        Serial.println("Push all test force stopped!");
+      }
+    } else {
+      startMotorReverse();
+      if (digitalRead(DownLimitBtn) == LOW) {
+        startMotorForward();
+        delay(250);
+        stopMotor();
+        testPushAll = false;
+        if (DEBUG_MODE) {
+          Serial.println("Push all completed - Down limit reached");
+        }
       }
     }
   }
