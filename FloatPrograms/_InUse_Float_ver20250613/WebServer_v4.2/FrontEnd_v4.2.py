@@ -22,7 +22,7 @@ import re
 #in get paramemters wrong, change it, and restart the front end program 
 
 #float motor time adjuest, in miliseconds
-companyID = "RN256"
+companyID = "RN008"
 
 #time unit, second
 descendTime = 20
