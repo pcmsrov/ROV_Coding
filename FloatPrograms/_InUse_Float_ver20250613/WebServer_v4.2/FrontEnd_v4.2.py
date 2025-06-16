@@ -27,7 +27,7 @@ companyID = "RN008"
 #time unit, second
 descendTime = 20
 ascendTime = 30
-waitTime = 30
+waitTime = 120
 
 debugMode = False  # 设置为true时启用详细调试信息
 useTimer = False
