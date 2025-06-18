@@ -21,7 +21,9 @@ unsigned long waitTime = 10000;
 unsigned long ascendTime = 7300;
 bool useTimer = false;
 
+
 float depthData = 0.0;  // Will be updated with real sensor data
+float depthOffset = 0.0;  // 新增：深度偏移量
 
 // 定义缓冲区大小 (5分钟 * 12次/分钟 = 36个数据点)
 const int BUFFER_SIZE = 60;
@@ -199,6 +201,8 @@ void handleInit() {
     
     // 标记时间已初始化
     isTimeInitialized = true;
+    // 新增：首次初始化時設置深度偏移
+    depthOffset = depthData;
     
     // 打印接收到的参数
     if (DEBUG_MODE) {
@@ -371,7 +375,7 @@ void loop() {
   
   // Update sensor readings
   sensor.read();
-  depthData = sensor.depth();  // Update depth data with real sensor reading
+  depthData = sensor.depth() - depthOffset;  // Update depth data with offset
   
   unsigned long currentTime = millis();
 
