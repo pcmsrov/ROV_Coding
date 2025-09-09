@@ -22,12 +22,12 @@ import re
 #in get paramemters wrong, change it, and restart the front end program 
 
 #float motor time adjuest, in miliseconds
-companyID = "RN008"
+companyID = "RN256"
 
 #time unit, second
 descendTime = 20
 ascendTime = 30
-waitTime = 120
+waitTime = 30
 
 debugMode = False  # 设置为true时启用详细调试信息
 useTimer = False
