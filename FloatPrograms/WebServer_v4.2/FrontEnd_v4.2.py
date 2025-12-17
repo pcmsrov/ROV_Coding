@@ -3,12 +3,12 @@ import requests
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                             QHBoxLayout, QPushButton, QTextEdit, QLabel, 
                             QLineEdit, QFormLayout, QSpinBox, QCheckBox,
-                            QSplitter)
+                            QSplitter)   
 from PyQt5.QtCore import QTimer, QTime
 from datetime import datetime
 from collections import deque
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvasz
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 import re
@@ -22,12 +22,12 @@ import re
 #in get paramemters wrong, change it, and restart the front end program 
 
 #float motor time adjuest, in miliseconds
-companyID = "RN256"
+companyID = "RN08"
 
 #time unit, second
 descendTime = 20
 ascendTime = 30
-waitTime = 30
+waitTime = 120
 
 debugMode = False  # 设置为true时启用详细调试信息
 useTimer = False
@@ -223,7 +223,7 @@ class TimeDataClient(QMainWindow):
         
         # Create matplotlib chart
         self.figure = Figure(figsize=(6, 4))
-        self.canvas = FigureCanvas(self.figure)
+        self.canvas = FigureCanvasz(self.figure)
         right_layout.addWidget(self.canvas)
         
         # Add navigation toolbar for zooming and panning
