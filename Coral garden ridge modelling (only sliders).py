@@ -1,3 +1,118 @@
+'''
+"""
+=========================================
+Coral Garden Ridge Modelling User Manual
+=========================================
+
+This script creates an interactive 3D visualization of three connected cuboids
+representing a simplified "coral garden ridge" structure. The cuboids are
+arranged in a chain along the X‑axis, sharing faces, with adjustable heights
+controlled by two linked sliders.
+
+-------------------------------------------------------------------------------
+Model Description
+-------------------------------------------------------------------------------
+The structure consists of three cuboids:
+
+1. **First cuboid** (blue when drawn – but here all edges are black):
+   - Dimensions: X = L1 (front/back length), Y = 30 (fixed), Z = h1 = 15.
+   - Vertices: A (origin), B, C, D at bottom; E, F, G, H at top.
+   - Fixed edges: AB = L1, DC = L1, FB = h1 (vertical at B), etc.
+
+2. **Second cuboid** (red, but edges black):
+   - Dimensions: X = L2 = 45 (fixed), Y = 30 (fixed), Z = H2 (variable).
+   - Attached to the right face (BCFG) of the first cuboid.
+   - Vertices: B, J, K, C at bottom; M, N, O, P at top.
+
+3. **Third cuboid** (green, but edges black):
+   - Dimensions: X = L3 = 30 (initial, but can be changed in code), Y = 30 (fixed), Z = H3 = 25 (fixed).
+   - Attached to the right face (NOJK) of the second cuboid.
+   - Vertices: J, Q, R, K at bottom; S, T, U, V at top.
+
+Fixed values (hard‑coded):
+   L1 = 15          (AB, DC)
+   h1 = 15          (FB, vertical edge of first cuboid)
+   L2 = 45          (BJ, CK)
+   H3 = 25          (SJ, KV – height of third cuboid)
+   L3 = 30          (JQ, KR – can be edited in the code)
+
+The variable heights are:
+   H2 = h1 + gap12   (height of second cuboid)
+   gap12 = H2 - h1   (MF, PG – vertical edges from first to second cuboid)
+   gap23 = H2 - H3   (NS, OV – vertical edges from second to third cuboid)
+
+Because H3 and h1 are fixed, gap12 and gap23 are linked by:
+   gap12 - gap23 = H3 - h1 = 10.
+
+-------------------------------------------------------------------------------
+Interactive Controls
+-------------------------------------------------------------------------------
+Two sliders appear below the plot:
+
+1. **MF, PG (H2 - h1)** – controls gap12 (the extra height of the second cuboid
+   above the first). Range: 10 to 150.
+
+2. **NS, OV (H2 - H3)** – controls gap23 (the height difference between the
+   second and third cuboids). Range: 0 to 140.
+
+The sliders are linked: moving one automatically adjusts the other so that
+gap12 - gap23 = 10 always holds. The second cuboid's total height H2 changes
+accordingly.
+
+-------------------------------------------------------------------------------
+How to Use
+-------------------------------------------------------------------------------
+1. **Run the script**:
+   - Make sure you have Python and matplotlib installed.
+   - If not, install matplotlib: `pip install matplotlib`
+   - Run the script: `python coral_garden.py`
+
+2. **Interact with the sliders**:
+   - Drag the slider thumb to change the height of the second cuboid.
+   - The plot updates in real time.
+   - The printed totals AQ and DR (total length from A to Q and from D to R)
+     appear in the console. Note: with L3 fixed, AQ = L1 + L2 + L3 = 15+45+30 = 90.
+
+3. **Explore the 3D view**:
+   - Click and drag to rotate the plot.
+   - Use the scroll wheel to zoom.
+   - Hover over vertices to see their labels (A through V).
+
+4. **Customize fixed parameters** (optional):
+   - To change L3, edit the line `L3 = 30.0` near the top.
+   - To change L1, h1, L2, or H3, modify their respective assignments.
+   - If you change H3, the slider link constant (10) must be updated accordingly.
+
+-------------------------------------------------------------------------------
+Vertex Labels
+-------------------------------------------------------------------------------
+All 22 distinct vertices are labelled with letters A through V:
+
+   A (0,0,0)         B (L1,0,0)        C (L1,30,0)       D (0,30,0)
+   E (0,0,h1)        F (L1,0,h1)       G (L1,30,h1)      H (0,30,h1)
+   J (L1+L2,0,0)     K (L1+L2,30,0)
+   M (L1,0,H2)       N (L1+L2,0,H2)    O (L1+L2,30,H2)   P (L1,30,H2)
+   Q (L1+L2+L3,0,0)  R (L1+L2+L3,30,0)
+   S (L1+L2,0,H3)    T (L1+L2+L3,0,H3) U (L1+L2+L3,30,H3) V (L1+L2,30,H3)
+
+Note that some vertices are shared between cuboids:
+   B and C belong to both first and second cuboids.
+   J and K belong to both second and third cuboids.
+
+-------------------------------------------------------------------------------
+Troubleshooting
+-------------------------------------------------------------------------------
+- If the plot does not appear, ensure matplotlib is installed and you are using
+  an interactive backend (e.g., in VS Code or a Python IDE that supports plots).
+- If the sliders are unresponsive, check that the figure window is not frozen.
+- If the console shows errors about `p`, you are using an older version of the
+  script; this version is correct.
+
+-------------------------------------------------------------------------------
+Enjoy exploring your coral garden ridge model!
+"""
+'''
+
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 from mpl_toolkits.mplot3d import Axes3D
@@ -134,5 +249,6 @@ def update(val):
 
 sli_gap12.on_changed(update)
 sli_gap23.on_changed(update)
+
 
 plt.show()
