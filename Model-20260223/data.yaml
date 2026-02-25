@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['GreenCrab']
+
+roboflow:
+  workspace: 2026materov
+  project: matet2
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/2026materov/matet2/dataset/1
