@@ -1,3 +1,7 @@
+WebServer -> ESP32燒錄, 使用Arduino IDE
+FrontEnd -> PC運行，前端控制介面
+
+
 Issue? ----------
 每次initial connect??
 WIFI都重連??
