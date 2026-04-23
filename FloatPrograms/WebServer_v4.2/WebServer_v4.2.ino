@@ -1,7 +1,7 @@
 //20260422 Top button limit switch 由19號PIN改成5號PIN//
 #include <WiFi.h>
 #include <WebServer.h>
-#include <ArduinoJson.h>  //add lib in arduino IDE
+#include <ArduinoJson.h>  //add lib in arduino IDE, by Benoit(?)
 #include <Wire.h>
 #include "MS5837.h" //add lib in arduino IDE, by Bluerobtoics v1.1.1
 
@@ -16,7 +16,7 @@ const char* password = "pcmsrov22";       // WiFi密码
 
 // 存储初始连接参数, 會從前端界面再發送，不用改
 String companyID = "NotSetYet";
-bool DEBUG_MODE = true;  // 设置为true时启用详细调试信息
+bool DEBUG_MODE = false;  // 设置为true时启用详细调试信息
 unsigned long descendTime = 7300;
 unsigned long waitTime = 10000;
 unsigned long ascendTime = 7300;
