@@ -1,6 +1,6 @@
 // 定义按钮引脚
 //const int buttonPin = 4;  // 使用GPIO2作为按钮输入引脚
-const int buttonPin = 18;  // 使用GPIO2作为按钮输入引脚
+const int buttonPin = 5;  // 使用GPIO2作为按钮输入引脚
 
 void setup() {
   // 初始化串口通信
