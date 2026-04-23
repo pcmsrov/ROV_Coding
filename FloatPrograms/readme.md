@@ -1,5 +1,20 @@
 WebServer -> ESP32燒錄, 使用Arduino IDE
+    COM, 板類型 ESP32 Dev Module
 FrontEnd -> PC運行，前端控制介面
+
+---
+front end
+install python lib
+
+pip install requests
+pip install PyQt5
+pip install matplotlib
+
+
+
+---
+
+
 
 
 Issue? ----------
