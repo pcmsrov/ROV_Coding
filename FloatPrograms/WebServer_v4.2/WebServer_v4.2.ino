@@ -49,7 +49,7 @@ MS5837 sensor;
 // 定义马达控制引脚
 const int IN1 = 25;  // 马达控制引脚1
 const int IN2 = 26;  // 马达控制引脚2
-const int TopLimitBtn = 19; // 下降时工作
+const int TopLimitBtn = 5; // 下降时工作
 const int DownLimitBtn = 18; // 上升时工作
 
 // 定义阶段
