@@ -26,8 +26,8 @@ bool useTimer = false;
 float depthData = 0.0;  // Will be updated with real sensor data
 float depthOffset = 0.0;  // 新增：深度偏移量
 
-// 定义缓冲区大小 (5分钟 * 12次/分钟 = 36个数据点)
-const int BUFFER_SIZE = 60;
+// 定义缓冲区大小 (10分钟 * 12次/分钟(每5秒一次) = 120个数据点)
+const int BUFFER_SIZE = 120;
 String timeBuffer[BUFFER_SIZE];
 float depthBuffer[BUFFER_SIZE];  // 新增深度数据缓冲区
 int writeIndex = 0;        // 写入位置
