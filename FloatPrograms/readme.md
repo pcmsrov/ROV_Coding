@@ -10,12 +10,14 @@ pip install requests
 pip install PyQt5
 pip install matplotlib
 
+---
+Trouble Shooting
+只有電池時Wifi不出現，接上USB線後Wifi又會出現
+    電池電量不足，更換電池即可解決
+
 
 
 ---
-
-
-
 
 Issue? ----------
 每次initial connect??
