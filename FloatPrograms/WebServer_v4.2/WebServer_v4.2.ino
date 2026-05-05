@@ -1,7 +1,7 @@
 //20260422 Top button limit switch 由19號PIN改成5號PIN//
 #include <WiFi.h>
 #include <WebServer.h>
-#include <ArduinoJson.h>  //add lib in arduino IDE
+#include <ArduinoJson.h>  //add lib in arduino IDE, by Benoit(?)
 #include <Wire.h>
 #include "MS5837.h" //add lib in arduino IDE, by Bluerobtoics v1.1.1
 
@@ -16,7 +16,7 @@ const char* password = "pcmsrov22";       // WiFi密码
 
 // 存储初始连接参数, 會從前端界面再發送，不用改
 String companyID = "NotSetYet";
-bool DEBUG_MODE = true;  // 设置为true时启用详细调试信息
+bool DEBUG_MODE = false;  // 设置为true时启用详细调试信息
 unsigned long descendTime = 7300;
 unsigned long waitTime = 10000;
 unsigned long ascendTime = 7300;
@@ -26,8 +26,8 @@ bool useTimer = false;
 float depthData = 0.0;  // Will be updated with real sensor data
 float depthOffset = 0.0;  // 新增：深度偏移量
 
-// 定义缓冲区大小 (5分钟 * 12次/分钟 = 36个数据点)
-const int BUFFER_SIZE = 60;
+// 定义缓冲区大小 (10分钟 * 12次/分钟(每5秒一次) = 120个数据点)
+const int BUFFER_SIZE = 120;
 String timeBuffer[BUFFER_SIZE];
 float depthBuffer[BUFFER_SIZE];  // 新增深度数据缓冲区
 int writeIndex = 0;        // 写入位置
