@@ -7,7 +7,7 @@ import math
 angle_tol = 8          # 角度容错，判定水平/垂直允许微小偏差
 right_angle_tol = 10   # 判定90°直角容错角度
 min_vertex_dist = 15   # 顶点最小间距，过滤重复顶点
-img_path = "water_frame.jpg"
+img_path = "water_under3.jpg"
 # 水下白色管线专用阈值
 lower_white = np.array([0, 0, 150])
 upper_white = np.array([180, 90, 255])
