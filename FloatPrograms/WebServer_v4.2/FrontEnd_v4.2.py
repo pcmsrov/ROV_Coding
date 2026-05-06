@@ -1,3 +1,15 @@
+"""
+MATE Float / Mosasaurus PCMS - PC FrontEnd (PyQt5)
+
+這支程式提供一個桌面 GUI，用來連線 ESP32（AP 模式下通常是 `192.168.4.1`），並完成：
+- **初始化/更新參數**：POST `/init`
+- **抓取資料**：GET `/data`（回傳字串陣列，內含 UTC 時間與深度資訊）
+- **啟動/測試/強制停止馬達**：POST `/motor/...`
+- **繪圖**：將解析出的 Depth vs Time 以 Matplotlib 顯示
+
+注意：本檔以「加註解」為主，避免改動任何既有行為。
+"""
+
 import sys
 import requests
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
@@ -13,29 +25,34 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 import re
 
-#to Do
-#send debug mode ture false
-#UI, 3:7
-#data, write CSV
+# TODO（待辦項目）
+# - 伺服端/協定：確認 debug mode / use timer 參數命名是否與 ESP32 端一致
+# - UI：版面與比例（原註記 3:7）
+# - 資料：將抓到的資料寫入 CSV（目前僅顯示與繪圖）
 
-#---------- Change Here ----------
-#in get paramemters wrong, change it, and restart the front end program 
-
-#float motor time adjuest, in miliseconds
-companyID = "RN08"
+# ---------- 可調參數區（改完需重啟前端程式） ----------
+# 這裡的預設值會用來初始化 UI 表單（使用者也可在介面中改）
+# 註：UI 以「秒」輸入，送到 ESP32 時會轉成「毫秒」
+companyID = "R01"  # 公司/裝置識別碼（會送到 `/init`）
 
 #time unit, second
-descendTime = 20
-ascendTime = 30
-waitTime = 120
+descendTime = 20  # 下潛時間（秒）
+ascendTime = 30   # 上升時間（秒）
+waitTime = 120    # 底部等待時間（秒）
 
-debugMode = False  # 设置为true时启用详细调试信息
-useTimer = False
-#---------- Change Here ----------
+debugMode = False  # True 時請伺服端輸出較多除錯資訊（由 `/init` 傳入）
+useTimer = False   # True 時啟用前端計時器顯示（由 `/init` 傳入）
+# ---------- 可調參數區結束 ----------
 
 
 
 class TimeDataClient(QMainWindow):
+    """
+    主視窗：控制面板 + 資料顯示 + 深度曲線圖。
+
+    左側：連線/更新參數、抓取資料、馬達控制、文字輸出。
+    右側：Matplotlib 圖表（Depth vs Time），附帶縮放/平移工具列。
+    """
     def __init__(self):
         super().__init__()
         self.setWindowTitle("MATE Float, Mosasaurus PCMS")
@@ -46,13 +63,13 @@ class TimeDataClient(QMainWindow):
         default_font.setPointSize(12)
         self.setFont(default_font)
         
-        # Create central widget and layout
+        # 建立中央 widget 與主布局（左右兩欄）
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QHBoxLayout(central_widget)
         main_layout.setContentsMargins(0, 0, 0, 0)  # 移除边距
         
-        # 创建分割器
+        # 分割器：允許使用者拖拉調整左右面板比例
         splitter = QSplitter()
         splitter.setHandleWidth(5)  # 设置分割线宽度
         splitter.setStyleSheet("""
@@ -64,25 +81,25 @@ class TimeDataClient(QMainWindow):
             }
         """)
         
-        # Left control panel
+        # 左側控制面板：參數、按鈕、文字輸出
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
         left_layout.setContentsMargins(10, 10, 10, 10)  # 添加内边距
         
-        # Create labels
+        # 狀態列：連線/資料點數/馬達狀態
         self.status_label = QLabel("Status: Not Connected")
         self.status_label.setFont(default_font)
         left_layout.addWidget(self.status_label)
         
-        # Create parameter input form
+        # 參數輸入表單（秒為單位，送出時會轉換成毫秒）
         param_form = QFormLayout()
         
-        # Company ID input
+        # Company ID：識別用字串
         self.company_id_input = QLineEdit(companyID)
         self.company_id_input.setFont(default_font)
         param_form.addRow("Company ID:", self.company_id_input)
         
-        # Descend Time input (in seconds)
+        # Descend Time：下潛時間（秒）
         self.descend_time_input = QSpinBox()
         self.descend_time_input.setRange(1, 300)
         self.descend_time_input.setValue(descendTime)
@@ -90,7 +107,7 @@ class TimeDataClient(QMainWindow):
         self.descend_time_input.setFont(default_font)
         param_form.addRow("DescendTime:", self.descend_time_input)
         
-        # Wait Time input (in seconds)
+        # Wait Time：等待時間（秒）
         self.wait_time_input = QSpinBox()
         self.wait_time_input.setRange(1, 300)
         self.wait_time_input.setValue(waitTime)
@@ -98,7 +115,7 @@ class TimeDataClient(QMainWindow):
         self.wait_time_input.setFont(default_font)
         param_form.addRow("WaitTime:", self.wait_time_input)
         
-        # Ascend Time input (in seconds)
+        # Ascend Time：上升時間（秒）
         self.ascend_time_input = QSpinBox()
         self.ascend_time_input.setRange(1, 300)
         self.ascend_time_input.setValue(ascendTime)
@@ -106,17 +123,17 @@ class TimeDataClient(QMainWindow):
         self.ascend_time_input.setFont(default_font)
         param_form.addRow("AscendTime:", self.ascend_time_input)
         
-        # Create horizontal layout for checkboxes
+        # 勾選項：Use Timer / Debug Mode
         checkbox_layout = QHBoxLayout()
         
-        # Use Timer toggle (left)
+        # Use Timer：前端是否顯示計時器（並同步送到伺服端）
         self.use_timer_checkbox = QCheckBox("Use Timer")
         self.use_timer_checkbox.setChecked(useTimer)
         self.use_timer_checkbox.stateChanged.connect(self.on_use_timer_changed)
         self.use_timer_checkbox.setFont(default_font)
         checkbox_layout.addWidget(self.use_timer_checkbox)
         
-        # Debug Mode toggle (right)
+        # Debug Mode：伺服端是否啟用較多除錯輸出（並同步送到伺服端）
         self.debugMode_checkbox = QCheckBox("Debug Mode")
         self.debugMode_checkbox.setChecked(debugMode)
         self.debugMode_checkbox.stateChanged.connect(self.on_debugMode_changed)
@@ -129,36 +146,36 @@ class TimeDataClient(QMainWindow):
         # Add form to left layout
         left_layout.addLayout(param_form)
         
-        # Create single button for both initial connection and parameter update
+        # 單一按鈕：首次連線與後續更新參數都走同一個 `/init`
         self.connection_button = QPushButton("Connect/Update Parameters")
         self.connection_button.clicked.connect(self.handle_connection)
         self.connection_button.setFont(default_font)
         left_layout.addWidget(self.connection_button)
         
-        # Create buttons
+        # 抓取資料：呼叫 `/data` 並更新文字與圖表
         self.fetch_button = QPushButton("Fetch Data")
         self.fetch_button.clicked.connect(self.fetch_data)
         self.fetch_button.setFont(default_font)
         left_layout.addWidget(self.fetch_button)
         
-        # Add Go button and timer in horizontal layout
+        # 啟動垂直剖面（馬達流程）與計時器顯示
         go_layout = QHBoxLayout()
         self.go_button = QPushButton("Start Vertical Profiling")
         self.go_button.clicked.connect(self.start_motor)
         self.go_button.setFont(default_font)
         go_layout.addWidget(self.go_button)
         
-        # Add timer label
+        # 計時器顯示（若伺服端流程啟動，前端每秒更新一次）
         self.timer_label = QLabel("00:00:00")
         self.timer_label.setStyleSheet("font-size: 12px; font-weight: bold;")
         self.timer_label.setFont(default_font)
         go_layout.addWidget(self.timer_label)
         left_layout.addLayout(go_layout)
         
-        # Add test and force stop buttons
+        # 馬達測試與強制停止（緊急停止）
         test_buttons_layout = QVBoxLayout()  # 改为垂直布局
         
-        # 第一行：Test Pull, Test Push 和 Force Stop
+        # 第一行：Pull All / Push All / Force Stop
         first_row_layout = QHBoxLayout()
         
         self.test_pull_all_button = QPushButton("Pull All")
@@ -191,7 +208,7 @@ class TimeDataClient(QMainWindow):
         self.force_stop_button.setFont(default_font)
         first_row_layout.addWidget(self.force_stop_button)
         
-        # 第二行：Pull All 和 Push All
+        # 第二行：Test Pull / Test Push
         second_row_layout = QHBoxLayout()
         
         self.test_pull_button = QPushButton("Test Pull")
@@ -210,23 +227,23 @@ class TimeDataClient(QMainWindow):
         
         left_layout.addLayout(test_buttons_layout)
         
-        # Create text display area
+        # 文字輸出區：顯示回傳資料與狀態訊息
         self.text_display = QTextEdit()
         self.text_display.setReadOnly(True)
         self.text_display.setFont(default_font)
         left_layout.addWidget(self.text_display)
         
-        # Right chart area
+        # 右側圖表區：深度曲線圖 + 工具列
         right_panel = QWidget()
         right_layout = QVBoxLayout(right_panel)
         right_layout.setContentsMargins(10, 10, 10, 10)  # 添加内边距
         
-        # Create matplotlib chart
+        # Matplotlib：使用 Qt canvas 內嵌顯示
         self.figure = Figure(figsize=(6, 4))
         self.canvas = FigureCanvasz(self.figure)
         right_layout.addWidget(self.canvas)
         
-        # Add navigation toolbar for zooming and panning
+        # 工具列：縮放/平移/存圖等
         self.toolbar = NavigationToolbar(self.canvas, right_panel)
         right_layout.addWidget(self.toolbar)
         
@@ -244,42 +261,61 @@ class TimeDataClient(QMainWindow):
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 1)
         
-        # Server address
+        # 伺服端位址（ESP32 AP 模式的預設 IP）
         self.server_url = "http://192.168.4.1"  # Default ESP32 AP IP address
         
-        # Create fixed-size FIFO queue, maximum 180 elements
+        # FIFO 佇列：最多保留 180 筆原始字串資料（用於顯示/狀態）
         self.max_size = 180
         self.time_data_queue = deque(maxlen=self.max_size)
         
-        # Store depth data
+        # 繪圖資料：從原始字串解析出 Depth 與 UTC Time（用於 plot）
         self.depth_data = []
         self.time_data = []
         
-        # Connection status flag
+        # 連線狀態：用來區分「首次連線」與「更新參數」的 UI 呈現
         self.is_connected = False
         
-        # Initialize timer
+        # 前端計時器：馬達流程開始後每秒更新顯示（不影響伺服端流程）
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_timer)
         self.elapsed_time = QTime(0, 0)
         self.is_timer_running = False
         
     def extract_depth(self, data_str):
-        """从数据字符串中提取深度值"""
+        """
+        從伺服端回傳的單筆字串中解析深度（公尺）。
+
+        預期格式範例：`"12:34:56 UTC ... 3.21 meters ..."`
+        回傳：
+        - float：深度（meters）
+        - None：找不到符合格式的深度
+        """
         match = re.search(r'(\d+\.\d+)\s+meters', data_str)
         if match:
             return float(match.group(1))
         return None
         
     def extract_time(self, data_str):
-        """从数据字符串中提取时间值"""
+        """
+        從伺服端回傳的單筆字串中解析 UTC 時間（hh:mm:ss）。
+
+        預期格式範例：`"12:34:56 UTC ..."`
+        回傳：
+        - str：`"HH:MM:SS"`
+        - None：找不到符合格式的時間
+        """
         match = re.search(r'(\d{2}:\d{2}:\d{2})\s+UTC', data_str)
         if match:
             return match.group(1)
         return None
         
     def plot_depth_data(self):
-        """Plot depth data chart"""
+        """
+        繪製 Depth vs Time 圖表。
+
+        - X 軸：UTC 時間字串（由 `extract_time` 取得）
+        - Y 軸：深度（公尺），並反轉 Y 軸使「越深」往下
+        """
         if not self.depth_data:
             self.text_display.append("No depth data available")
             return
@@ -315,19 +351,26 @@ class TimeDataClient(QMainWindow):
         self.canvas.draw()
         
     def on_debugMode_changed(self, state):
-        """Handle debug mode checkbox state change"""
+        """Debug Mode 勾選狀態改變時，同步更新 `/init` 參數。"""
         global debugMode
         debugMode = bool(state)
         if self.is_connected:
             self.handle_connection()  # Automatically update parameters when debug mode changes
             
     def on_use_timer_changed(self, state):
-        """Handle use timer checkbox state change"""
+        """Use Timer 勾選狀態改變時，同步更新 `/init` 參數。"""
         if self.is_connected:
             self.handle_connection()  # Automatically update parameters when use timer changes
             
     def handle_connection(self):
-        """Handle both initial connection and parameter update"""
+        """
+        首次連線 / 更新參數。
+
+        送出 POST `/init`，內容包含：
+        - `utc_time`：目前 UTC 時間（HH:MM:SS）
+        - `descend_time` / `wait_time` / `ascend_time`：毫秒
+        - `debug_mode` / `use_timer` / `company_id`
+        """
         try:
             # Get current UTC time
             utc_time = datetime.utcnow().strftime("%H:%M:%S")
@@ -380,6 +423,13 @@ class TimeDataClient(QMainWindow):
             self.is_connected = False
             
     def fetch_data(self):
+        """
+        從伺服端抓取資料並更新 UI。
+
+        - GET `/data` 取得字串陣列
+        - 逐筆加入 FIFO 佇列與文字顯示區
+        - 嘗試解析 depth/time，成功則追加到繪圖序列並重畫
+        """
         try:
             # Get data
             response = requests.get(f"{self.server_url}/data")
@@ -416,7 +466,12 @@ class TimeDataClient(QMainWindow):
             self.text_display.append("Unable to connect to server, please ensure ESP32 is running in AP mode.")
 
     def start_motor(self):
-        """Start motor control"""
+        """
+        啟動垂直剖面（馬達控制）流程。
+
+        - POST `/motor/start`
+        - 成功後啟動前端計時器（每秒更新）
+        """
         try:
             self.text_display.append("Attempting to start motor control...")
             response = requests.post(f"{self.server_url}/motor/start")
@@ -437,12 +492,12 @@ class TimeDataClient(QMainWindow):
             self.status_label.setText("Status: Connection Failed")
 
     def update_timer(self):
-        """Update timer display"""
+        """每秒更新一次前端計時器顯示。"""
         self.elapsed_time = self.elapsed_time.addSecs(1)
         self.timer_label.setText(self.elapsed_time.toString("hh:mm:ss"))
 
     def test_pull(self):
-        """Test pull function"""
+        """馬達測試：Pull（單次）。POST `/motor/test/pull`。"""
         try:
             response = requests.post(f"{self.server_url}/motor/test/pull")
             if response.status_code == 200:
@@ -453,7 +508,7 @@ class TimeDataClient(QMainWindow):
             self.text_display.append("Unable to connect to server")
 
     def test_push(self):
-        """Test push function"""
+        """馬達測試：Push（單次）。POST `/motor/test/push`。"""
         try:
             response = requests.post(f"{self.server_url}/motor/test/push")
             if response.status_code == 200:
@@ -464,7 +519,7 @@ class TimeDataClient(QMainWindow):
             self.text_display.append("Unable to connect to server")
 
     def test_pull_all(self):
-        """Test pull all function"""
+        """馬達測試：Pull All。POST `/motor/test/pullall`。"""
         try:
             response = requests.post(f"{self.server_url}/motor/test/pullall")
             if response.status_code == 200:
@@ -475,7 +530,7 @@ class TimeDataClient(QMainWindow):
             self.text_display.append("Unable to connect to server")
 
     def test_push_all(self):
-        """Test push all function"""
+        """馬達測試：Push All。POST `/motor/test/pushall`。"""
         try:
             response = requests.post(f"{self.server_url}/motor/test/pushall")
             if response.status_code == 200:
@@ -486,7 +541,12 @@ class TimeDataClient(QMainWindow):
             self.text_display.append("Unable to connect to server")
 
     def force_stop(self):
-        """Force stop function"""
+        """
+        緊急停止：強制停止馬達流程。
+
+        - POST `/motor/force/stop`
+        - 若前端計時器正在跑，會同步停止（避免誤導）
+        """
         try:
             response = requests.post(f"{self.server_url}/motor/force/stop")
             if response.status_code == 200:

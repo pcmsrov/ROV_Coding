@@ -1,3 +1,4 @@
+//20260422 Top button limit switch 由19號PIN改成5號PIN//
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>  //add lib in arduino IDE
@@ -15,7 +16,7 @@ const char* password = "pcmsrov22";       // WiFi密码
 
 // 存储初始连接参数, 會從前端界面再發送，不用改
 String companyID = "NotSetYet";
-bool DEBUG_MODE = false;  // 设置为true时启用详细调试信息
+bool DEBUG_MODE = true;  // 设置为true时启用详细调试信息
 unsigned long descendTime = 7300;
 unsigned long waitTime = 10000;
 unsigned long ascendTime = 7300;
@@ -48,7 +49,7 @@ MS5837 sensor;
 // 定义马达控制引脚
 const int IN1 = 25;  // 马达控制引脚1
 const int IN2 = 26;  // 马达控制引脚2
-const int TopLimitBtn = 19; // 下降时工作
+const int TopLimitBtn = 5; // 下降时工作
 const int DownLimitBtn = 18; // 上升时工作
 
 // 定义阶段
@@ -57,6 +58,7 @@ enum Phase {
   DESCENDING,
   WAITING,
   ASCENDING,
+  INTERMISSION,
   COMPLETED
 };
 
@@ -71,6 +73,15 @@ bool testPush = false;
 bool testPullAll = false;  // 新增：测试完全拉出
 bool testPushAll = false;  // 新增：测试完全推入
 bool forceStop = false;
+
+// 垂直剖面（profiling）連續執行次數控制
+// - 按一次 `/motor/start`，會自動連續跑 DEFAULT_PROFILE_CYCLES 次
+// - 若在流程中 force stop，會清空剩餘次數
+const int DEFAULT_PROFILE_CYCLES = 2;
+int profileCyclesRemaining = 0;
+
+// 完成第一次 profiling 後，延遲多久才開始第二次（毫秒）
+const unsigned long PROFILE_INTERMISSION_MS = 120000;
 
 String inputString = "";      // 存储接收到的串口数据
 bool stringComplete = false;  // 标记是否接收到完整字符串
@@ -245,6 +256,8 @@ void handleMotorControl() {
     }
     
     if (!progress) {  // 只有在没有进行中的操作时才启动
+      // 每次收到 start，都重新設定要連續執行的 profiling 次數
+      profileCyclesRemaining = DEFAULT_PROFILE_CYCLES;
       startProcess = true;
       currentPhase = DESCENDING;
       if (DEBUG_MODE) {
@@ -465,6 +478,7 @@ void loop() {
       progress = false;
       startProcess = false;
       currentPhase = IDLE;
+      profileCyclesRemaining = 0;
       if (DEBUG_MODE) {
         Serial.println("Process force stopped!");
       }
@@ -510,11 +524,38 @@ void loop() {
           startMotorForward(); //move back a little
           delay(250);
           stopMotor();
-          currentPhase = COMPLETED;
-          progress = false;
-          startProcess = false;
+          // 一輪 profiling 結束：若還有剩餘輪次，就直接開始下一輪 DESCENDING
+          if (profileCyclesRemaining > 0) {
+            profileCyclesRemaining--;
+          }
+
+          if (profileCyclesRemaining > 0) {
+            // 完成第一次 profiling 後，先等待一段時間才開始第二次
+            currentPhase = INTERMISSION;
+            phaseStartTime = millis();
+            if (DEBUG_MODE) {
+              Serial.print("Ascending phase completed. Waiting before next profiling cycle, remaining: ");
+              Serial.println(profileCyclesRemaining);
+            }
+          } else {
+            currentPhase = COMPLETED;
+            progress = false;
+            startProcess = false;
+            if (DEBUG_MODE) {
+              Serial.println("Ascending phase completed");
+            }
+          }
+        }
+        break;
+
+      case INTERMISSION:
+        // 馬達已停止，等待指定時間後再開始下一輪下潛
+        if (millis() - phaseStartTime >= PROFILE_INTERMISSION_MS) {
+          currentPhase = DESCENDING;
+          phaseStartTime = millis();
+          startMotorForward();
           if (DEBUG_MODE) {
-            Serial.println("Ascending phase completed");
+            Serial.println("Intermission completed. Starting next descending phase");
           }
         }
         break;
