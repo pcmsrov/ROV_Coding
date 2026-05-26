@@ -354,7 +354,7 @@ sli_L3 = Slider(ax_L3, 'L3 (JQ, KR, ST, UV)', 0, 200, valinit=L3_init)
 sli_gap12 = Slider(ax_gap12, 'gap12 (MF, PG)', 20, 160, valinit=gap12_init)
 sli_gap23 = Slider(ax_gap23, 'gap23 (NS, OV)', 10, 150, valinit=gap23_init)
 
-# Text box for marker selection (multiple allowed)
+# Text box for marker selection (multiple allowed)initial中換點位
 ax_text = plt.axes([0.2, 0.05, 0.2, 0.05])
 text_box = TextBox(ax_text, 'Markers (e.g., A,BJ,CK): ', initial='A,D,BJ,Q,R,M,N,CK')
 
