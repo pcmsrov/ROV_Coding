@@ -5,10 +5,6 @@
 #include <Wire.h>
 #include "MS5837.h" //add lib in arduino IDE, by Bluerobtoics v1.1.1
 
-// 2026-06-26 //
-// // 完成第一次 profiling 後，延遲多久才開始第二次（毫秒）
-// const unsigned long PROFILE_INTERMISSION_MS = 120000;
-// ** 新增：const unsigned long PROFILE_INTERMISSION_MS = waitTime;（應與wait_time）
 
 //---------- Maybe Change Here ----------
 // 网络设置
@@ -54,7 +50,7 @@ MS5837 sensor;
 const int IN1 = 25;  // 马达控制引脚1
 const int IN2 = 26;  // 马达控制引脚2
 const int TopLimitBtn = 5; // 下降时工作
-const int DownLimitBtn = 18; // 上升 时工作
+const int DownLimitBtn = 18; // 上升时工作
 
 // 定义阶段
 enum Phase {
@@ -86,7 +82,6 @@ int profileCyclesRemaining = 0;
 
 // 完成第一次 profiling 後，延遲多久才開始第二次（毫秒）
 const unsigned long PROFILE_INTERMISSION_MS = 120000;
-// const unsigned long PROFILE_INTERMISSION_MS = waitTime;
 
 String inputString = "";      // 存储接收到的串口数据
 bool stringComplete = false;  // 标记是否接收到完整字符串
@@ -391,6 +386,34 @@ void setup() {
 void loop() {
   server.handleClient();
   
+  // ===== 新增：極限開關強制保護（最高優先級）=====
+  // 無論在任何狀態下，只要觸發極限開關就立即停止馬達
+  if (digitalRead(TopLimitBtn) == LOW || digitalRead(DownLimitBtn) == LOW) {
+    stopMotor();
+    motorRunning = false;
+    
+    // 強制中斷所有正在進行的程序
+    if (progress) {
+      progress = false;
+      startProcess = false;
+      currentPhase = IDLE;
+      profileCyclesRemaining = 0;
+      forceStop = false;
+      
+      if (DEBUG_MODE) {
+        Serial.println("!!! LIMIT SWITCH TRIGGERED - EMERGENCY STOP !!!");
+        if (digitalRead(TopLimitBtn) == LOW) {
+          Serial.println("Top limit switch activated (too far up)");
+        }
+        if (digitalRead(DownLimitBtn) == LOW) {
+          Serial.println("Down limit switch activated (too far down)");
+        }
+      }
+    }
+    // 注意 ：這裡不要 return，讓後續程式繼續執行，但馬達已經停止
+  }
+  // ===== 極限開關保護結束 =====
+
   // Update sensor readings
   sensor.read();
   depthData = sensor.depth() - depthOffset;  // Update depth data with offset
@@ -500,29 +523,75 @@ void loop() {
     }
     
     switch (currentPhase) {
-      case DESCENDING:
-        if (digitalRead(TopLimitBtn) == LOW || (useTimer && millis() - phaseStartTime >= descendTime)) {
-          startMotorReverse();  //move back a little
-          delay(250);
-          stopMotor();
-          currentPhase = WAITING;
-          phaseStartTime = millis();  // 更新为等待阶段开始时间
-          if (DEBUG_MODE) {
-            Serial.println("Descending phase completed");
+      case DESCENDING:{
+        // 下降階段開始後的計時 
+        unsigned long elapsedInDescend = millis() - phaseStartTime;
+
+        // ===== 診斷訊息（強制輸出，不受 DEBUG_MODE 影響）=====
+        Serial.print("=== DIAG: elapsedInDescend = ");
+        Serial.print(elapsedInDescend);
+        Serial.print(" ms, depthData = ");
+        Serial.print(depthData, 3);
+        Serial.print(" m, targetDepth = 0.5 m ===");
+        Serial.println();
+        // ===================================================
+
+
+        // 只在頭 30 秒內進行 0.5 米定深
+        if (elapsedInDescend < 30000) {
+          Serial.println(">>> INSIDE IF (elapsedInDescend < 30000) <<<");
+          float targetDepth = 0.25;            // 目標深度 0.5 米
+          float deadband = 0.05;              // 死區 ±0.05 米
+          float error = targetDepth - depthData;  // 正 => 太淺，負 => 太深
+
+          if (error > deadband) {
+            // 深度太淺，需要下沉（Pull）
+            startMotorForward();  
+            if (DEBUG_MODE) {
+              Serial.print("Depth: ");
+              Serial.print(depthData, 2);
+              Serial.println(" m - Pull (下沉)");
+            }
+          } 
+          else if (error < -deadband) {
+            // 深度太深，需要上浮（Push）
+            startMotorReverse();   // Push = 
+            if (DEBUG_MODE) {
+              Serial.print("Depth: ");
+              Serial.print(depthData, 2);
+              Serial.println(" m - Push (上浮)");
+            }
+          } 
+          else {
+            // 在目標範圍內，停止馬達
+            stopMotor();
+            if (DEBUG_MODE) {
+              Serial.print("Depth: ");
+              Serial.print(depthData, 2);
+              Serial.println(" m - Stop (已達0.5米)");
+            }
           }
         }
-        break;
-        
-      case WAITING:
-        if (millis() - phaseStartTime >= waitTime) {  // 只使用等待时间
-          startMotorReverse();
-          currentPhase = ASCENDING;
-          phaseStartTime = millis();  // 更新为上升阶段开始时间
-          if (DEBUG_MODE) {
-            Serial.println("Starting ascending phase");
+        else {
+          // 30秒後，恢復原本的下降邏輯（直到極限開關或計時結束）
+          if (digitalRead(TopLimitBtn) == LOW || (useTimer && elapsedInDescend >= descendTime)) {
+            startMotorReverse();
+            delay(250);
+            stopMotor();
+            currentPhase = WAITING;
+            phaseStartTime = millis();
+            if (DEBUG_MODE) {
+              Serial.println("Descending phase completed");
+            }
+          }
+          else {
+            // 仍在下降且未達極限 → 繼續下沉
+            Serial.println(">>> INSIDE ELSE (elapsedInDescend >= 30000) <<<");
+            startMotorForward();
           }
         }
-        break;
+      }
+      break;
         
       case ASCENDING:
         if (digitalRead(DownLimitBtn) == LOW || (useTimer && millis() - phaseStartTime >= ascendTime)) {  // 只使用上升时间

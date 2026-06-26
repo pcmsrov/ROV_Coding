@@ -33,7 +33,7 @@ import re
 # ---------- 可調參數區（改完需重啟前端程式） ----------
 # 這裡的預設值會用來初始化 UI 表單（使用者也可在介面中改）
 # 註：UI 以「秒」輸入，送到 ESP32 時會轉成「毫秒」
-companyID = "R01"  # 公司/裝置識別碼（會送到 `/init`）
+companyID = "RN19"  # 公司/裝置識別碼（會送到 `/init`）
 
 #time unit, second
 descendTime = 20  # 下潛時間（秒）
