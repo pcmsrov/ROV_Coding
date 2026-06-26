@@ -55,7 +55,7 @@ class PipeMeasurer:
 
 
 def main():
-    image_path = "Rov photo/t1.png"  # 替換為實際圖像路徑
+    image_path = "Rov photot1.png"  # 替換為實際圖像路徑
 
     measurer = PipeMeasurer() # 創建PipeMeasurer實例
 

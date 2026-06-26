@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>PVC管阶梯框架 - 以RKCD为底视角</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif; }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.75);
+            color: #eee;
+            padding: 12px 18px;
+            border-radius: 10px;
+            backdrop-filter: blur(6px);
+            pointer-events: none;
+            z-index: 10;
+            font-size: 13px;
+            border-left: 4px solid #ff8844;
+            font-family: monospace;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+        }
+        #controls-note {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.55);
+            color: #ccc;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 10;
+            font-family: monospace;
+        }
+        .status-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.6);
+            color: #0f0;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 10;
+            letter-spacing: 1px;
+        }
+        #sample-panel {
+            position: absolute;
+            top: 62px;
+            right: 20px;
+            width: 300px;
+            background: rgba(0,0,0,0.68);
+            color: #ddd;
+            border-radius: 10px;
+            padding: 12px;
+            z-index: 12;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.35);
+            font-family: monospace;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        #sample-panel h4 {
+            margin: 0 0 10px 0;
+            color: #ffcc88;
+            font-size: 13px;
+        }
+        #sample-panel .hint {
+            color: #b0b0b0;
+            font-size: 11px;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+        #sample-panel .name-input {
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 6px;
+            padding: 6px 8px;
+            border-radius: 6px;
+            border: 1px solid #555;
+            background: #151525;
+            color: #eee;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        #sample-panel .btn-row {
+            display: flex;
+            gap: 8px;
+            margin: 8px 0;
+        }
+        #sample-panel button {
+            flex: 1;
+            padding: 6px 8px;
+            border-radius: 6px;
+            border: 1px solid #666;
+            background: #24283d;
+            color: #e6e6e6;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        #sample-panel button:hover {
+            background: #2f3554;
+        }
+        #example-preview {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        #example-preview img {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #666;
+            background: #101018;
+        }
+        #example-status {
+            margin-top: 6px;
+            font-size: 11px;
+            color: #9fd39f;
+            min-height: 16px;
+        }
+        .measure-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 8px;
+            margin-top: 8px;
+            align-items: center;
+        }
+        .measure-grid label {
+            font-size: 11px;
+            color: #ccc;
+        }
+        .measure-grid input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 5px 7px;
+            border-radius: 5px;
+            border: 1px solid #555;
+            background: #151525;
+            color: #eee;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        #generate-model-btn {
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px 10px;
+            border-radius: 7px;
+            border: 1px solid #6f8aff;
+            background: #2b3a75;
+            color: #eef3ff;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        #generate-model-btn:hover {
+            background: #32458c;
+        }
+        #overlay-tip {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at center, rgba(10, 16, 48, 0.92), rgba(10, 16, 48, 0.98));
+            color: #dde8ff;
+            z-index: 5;
+            font-family: monospace;
+            text-align: center;
+            padding: 20px;
+            pointer-events: none;
+        }
+        #overlay-tip .inner {
+            max-width: 520px;
+            line-height: 1.7;
+            font-size: 14px;
+            border: 1px solid rgba(255,255,255,0.22);
+            border-radius: 12px;
+            padding: 16px 20px;
+            background: rgba(15, 20, 52, 0.65);
+        }
+        @media (max-width: 600px) {
+            #info { font-size: 9px; top: 10px; left: 10px; padding: 6px 10px; }
+            #controls-note { font-size: 8px; }
+            .status-badge { font-size: 8px; top: 10px; right: 10px; }
+            #sample-panel {
+                width: 220px;
+                top: 40px;
+                right: 10px;
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <strong>📐 三层阶梯式PVC框架</strong> | 以 R-K-C-D 底面为基准视角<br>
+        左侧高15cm | 中间高36cm | 右侧高25cm | 可任意旋转
+    </div>
+    <div id="controls-note">
+        🖱️ 鼠标拖拽旋转 | 右键平移 | 滚轮缩放 | 初始视角正对R-K-C-D底面
+    </div>
+    <div class="status-badge" id="coord-status">
+        🟡 尚未生成3D模型
+    </div>
+    <div id="overlay-tip">
+        <div class="inner">
+            先完成「3張圖片識別示例 + AB/JQ/MB長度輸入」<br>
+            再按「生成3D模型」，才會顯示模型
+        </div>
+    </div>
+    <div id="sample-panel">
+        <h4>🖼️ 識別示例輸入（3張）</h4>
+        <div class="hint">快速模式（推薦）：直接按「選擇本機3張圖」，不用改檔名。</div>
+        <input id="example-name-1" class="name-input" type="text" placeholder="可選：同路徑檔名（例如 a.jpg）" />
+        <input id="example-name-2" class="name-input" type="text" placeholder="可選：同路徑檔名（例如 b.jpg）" />
+        <input id="example-name-3" class="name-input" type="text" placeholder="可選：同路徑檔名（例如 c.jpg）" />
+        <div class="btn-row">
+            <button id="load-by-name">依檔名載入（可選）</button>
+            <button id="pick-local-files">選擇本機3張圖</button>
+        </div>
+        <input id="local-file-input" type="file" accept="image/*" multiple style="display:none;" />
+        <div id="example-preview">
+            <img id="preview-1" alt="示例圖1" />
+            <img id="preview-2" alt="示例圖2" />
+            <img id="preview-3" alt="示例圖3" />
+        </div>
+        <div class="measure-grid">
+            <label for="len-ab">AB 長度(cm)</label>
+            <input id="len-ab" type="number" step="0.1" min="1" value="40" />
+            <label for="len-jq">JQ 長度(cm)</label>
+            <input id="len-jq" type="number" step="0.1" min="1" value="40" />
+            <label for="len-mb">MB 長度(cm)</label>
+            <input id="len-mb" type="number" step="0.1" min="1" value="36" />
+        </div>
+        <button id="generate-model-btn">生成3D模型（先量長度）</button>
+        <div id="example-status"></div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // ========== 固定参数（基于参考程序）==========
+        const WIDTH_Y = 30.0;   // 前后宽度
+        const h1 = 15.0;        // 第一层高度
+        const L2 = 45.0;        // 中间单元X方向长度 BJ (固定)
+        const H3 = 25.0;        // 右侧单元高度
+        
+        // 初始值：改为由用户先输入量测结果后再生成模型
+        const DEFAULT_L1 = 40.0;   // AB
+        const DEFAULT_L3 = 40.0;   // JQ
+        const DEFAULT_MB = 36.0;   // MB = H2
+        
+        // ========== 根据参考程序 compute_points 逻辑计算所有顶点 ==========
+        function computePoints(l1, l3, gap12Val, gap23Val) {
+            const H2 = h1 + gap12Val;   // 中间单元顶部高度 = 36
+            
+            return {
+                "A": [0, 0, 0],
+                "B": [l1, 0, 0],
+                "C": [l1, WIDTH_Y, 0],
+                "D": [0, WIDTH_Y, 0],
+                "E": [0, 0, h1],
+                "F": [l1, 0, h1],
+                "G": [l1, WIDTH_Y, h1],
+                "H": [0, WIDTH_Y, h1],
+                "J": [l1 + L2, 0, 0],
+                "K": [l1 + L2, WIDTH_Y, 0],
+                "M": [l1, 0, H2],
+                "N": [l1 + L2, 0, H2],
+                "O": [l1 + L2, WIDTH_Y, H2],
+                "P": [l1, WIDTH_Y, H2],
+                "Q": [l1 + L2 + l3, 0, 0],
+                "R": [l1 + L2 + l3, WIDTH_Y, 0],
+                "S": [l1 + L2, 0, H3],
+                "T": [l1 + L2 + l3, 0, H3],
+                "U": [l1 + L2 + l3, WIDTH_Y, H3],
+                "V": [l1 + L2, WIDTH_Y, H3],
+            };
+        }
+        
+        // 边定义
+        const EDGES = [
+            ["A", "B"], ["B", "C"], ["C", "D"], ["D", "A"],
+            ["E", "F"], ["F", "G"], ["G", "H"], ["H", "E"],
+            ["A", "E"], ["B", "F"], ["C", "G"], ["D", "H"],
+            ["B", "J"], ["J", "K"], ["K", "C"],
+            ["M", "N"], ["N", "O"], ["O", "P"], ["P", "M"],
+            ["B", "M"], ["J", "N"], ["K", "O"], ["C", "P"],
+            ["J", "Q"], ["Q", "R"], ["R", "K"],
+            ["S", "T"], ["T", "U"], ["U", "V"], ["V", "S"],
+            ["J", "S"], ["Q", "T"], ["R", "U"], ["K", "V"],
+            ["M", "F"], ["P", "G"], ["N", "S"], ["O", "V"],
+        ];
+        
+        // 中点节点
+        const MID_NODES = ["BJ_MID", "CK_MID"];
+        
+        // ========== Three.js 初始化 ==========
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a1030);
+        scene.fog = new THREE.FogExp2(0x0a1030, 0.005);
+        
+        const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 300);
+        // 调整初始相机位置，使 R-K-C-D 底面 prominently 可见
+        // R 和 K 在右侧后部，C 和 D 在左侧后部，让相机从右后上方俯视，突出底面
+        camera.position.set(95, 55, 70);
+        camera.lookAt(70, 15, 15);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+        
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.left = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(labelRenderer.domElement);
+        
+        // 轨道控制
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+        controls.rotateSpeed = 1.0;
+        controls.zoomSpeed = 1.2;
+        controls.panSpeed = 0.8;
+        controls.target.set(70, 18, 15);
+        
+        // 灯光系统
+        const ambient = new THREE.AmbientLight(0x404060);
+        scene.add(ambient);
+        const mainLight = new THREE.DirectionalLight(0xffffff, 1.15);
+        mainLight.position.set(35, 70, 30);
+        mainLight.castShadow = true;
+        scene.add(mainLight);
+        const fillLight = new THREE.PointLight(0x5588aa, 0.35);
+        fillLight.position.set(-25, 40, 45);
+        scene.add(fillLight);
+        const backLight = new THREE.PointLight(0xffaa77, 0.28);
+        backLight.position.set(50, 45, -55);
+        scene.add(backLight);
+        const rimLight = new THREE.PointLight(0x88aaff, 0.3);
+        rimLight.position.set(85, 60, 50);
+        scene.add(rimLight);
+        
+        // 辅助网格地面 - 降低透明度，让底面更清晰
+        const grid = new THREE.GridHelper(200, 25, 0x88aacc, 0x335588);
+        grid.position.y = -2;
+        grid.material.transparent = true;
+        grid.material.opacity = 0.2;
+        scene.add(grid);
+        
+        // 简易轴线
+        const axes = new THREE.AxesHelper(110);
+        axes.material.transparent = true;
+        axes.material.opacity = 0.12;
+        scene.add(axes);
+        
+        // 材质定义
+        const tubeRadius = 1.12;
+        const radialSeg = 14;
+        const pvcMaterial = new THREE.MeshStandardMaterial({
+            color: 0xdce5f0,
+            roughness: 0.42,
+            metalness: 0.07,
+            emissive: 0x111122
+        });
+        const connectorMaterial = new THREE.MeshStandardMaterial({
+            color: 0xb8c7dd,
+            roughness: 0.35,
+            metalness: 0.2
+        });
+        
+        // 辅助函数: 两点间圆柱
+        function addCylBetween(p1, p2, radius, material, sceneRef) {
+            const start = new THREE.Vector3(p1[0], p1[1], p1[2]);
+            const end = new THREE.Vector3(p2[0], p2[1], p2[2]);
+            const dir = new THREE.Vector3().subVectors(end, start);
+            const len = dir.length();
+            if (len < 0.1) return;
+            const center = start.clone().add(end).multiplyScalar(0.5);
+            const cylinder = new THREE.Mesh(
+                new THREE.CylinderGeometry(radius, radius, len, radialSeg),
+                material
+            );
+            cylinder.position.copy(center);
+            cylinder.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.clone().normalize());
+            sceneRef.add(cylinder);
+        }
+        
+        function addJoint(pos, radius = 1.25, sceneRef) {
+            const sphere = new THREE.Mesh(new THREE.SphereGeometry(radius, 10, 10), connectorMaterial);
+            sphere.position.set(pos[0], pos[1], pos[2]);
+            sceneRef.add(sphere);
+        }
+        
+        let points = null;
+        let modelGenerated = false;
+        const rkcdPoints = ["R", "K", "C", "D"];
+        
+        // 添加CSS2D文字标签
+        function addLabel(text, position, color = '#ffaa77', fontSize = '11px', offsetY = 1.2) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            div.style.color = color;
+            div.style.fontSize = fontSize;
+            div.style.fontWeight = 'bold';
+            div.style.background = 'rgba(20,20,40,0.75)';
+            div.style.padding = '2px 8px';
+            div.style.borderRadius = '14px';
+            div.style.border = `1px solid ${color}`;
+            div.style.fontFamily = 'monospace';
+            div.style.backdropFilter = 'blur(4px)';
+            div.style.whiteSpace = 'nowrap';
+            const label = new CSS2DObject(div);
+            label.position.set(position[0], position[1] + offsetY, position[2]);
+            scene.add(label);
+        }
+        
+        function clearSceneObjectsKeepHelpers() {
+            const removable = [];
+            scene.traverse(obj => {
+                if (
+                    obj.type === 'Mesh' ||
+                    obj.type === 'Line' ||
+                    obj.type === 'LineSegments' ||
+                    obj.type === 'Sprite' ||
+                    obj.isCSS2DObject
+                ) {
+                    removable.push(obj);
+                }
+            });
+            removable.forEach(obj => {
+                if (obj.parent) obj.parent.remove(obj);
+            });
+            // 重新加入辅助对象
+            scene.add(grid);
+            scene.add(axes);
+        }
+
+        function buildModelByMeasurements(L1, L3, MB) {
+            const gap12 = Math.max(1, MB - h1);
+            const gap23 = gap12 - 10;
+            points = computePoints(L1, L3, gap12, gap23);
+
+            points["BJ_MID"] = [
+                (points["B"][0] + points["J"][0]) / 2,
+                (points["B"][1] + points["J"][1]) / 2,
+                (points["B"][2] + points["J"][2]) / 2
+            ];
+            points["CK_MID"] = [
+                (points["C"][0] + points["K"][0]) / 2,
+                (points["C"][1] + points["K"][1]) / 2,
+                (points["C"][2] + points["K"][2]) / 2
+            ];
+
+            EDGES.forEach(edge => {
+                const p1 = points[edge[0]];
+                const p2 = points[edge[1]];
+                if (p1 && p2) addCylBetween(p1, p2, tubeRadius, pvcMaterial, scene);
+            });
+
+            const allNodeNames = [...Object.keys(points), ...MID_NODES];
+            const addedPositions = new Set();
+            allNodeNames.forEach(name => {
+                const pos = points[name];
+                if (!pos) return;
+                const key = `${pos[0]},${pos[1]},${pos[2]}`;
+                if (!addedPositions.has(key)) {
+                    addJoint(pos, 1.2, scene);
+                    addedPositions.add(key);
+                }
+            });
+
+            const highlightMaterial = new THREE.MeshStandardMaterial({ color: 0xffaa66, emissive: 0x442200, emissiveIntensity: 0.3 });
+            rkcdPoints.forEach(name => {
+                const pos = points[name];
+                if (!pos) return;
+                const marker = new THREE.Mesh(new THREE.SphereGeometry(1.6, 16, 16), highlightMaterial);
+                marker.position.set(pos[0], pos[1], pos[2]);
+                scene.add(marker);
+            });
+
+            const keyVertices = ["A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "BJ_MID", "CK_MID"];
+            keyVertices.forEach(v => {
+                if (!points[v]) return;
+                let color = '#88ccff';
+                if (v === 'BJ_MID' || v === 'CK_MID') color = '#aaffaa';
+                if (v === 'S' || v === 'T' || v === 'U' || v === 'V') color = '#ffaa88';
+                if (rkcdPoints.includes(v)) color = '#ff8844';
+                addLabel(v, points[v], color, '10px', 1.0);
+            });
+
+            addLabel(`左侧单元顶高 ${h1.toFixed(1)}cm`, [L1 / 2, -10, h1 + 1.5], '#88aaff', '11px', 0);
+            addLabel(`中间单元顶高 ${MB.toFixed(1)}cm`, [L1 + L2 / 2, -12, MB + 1.5], '#ffcc88', '11px', 0);
+            addLabel(`右侧单元高 ${H3.toFixed(1)}cm`, [L1 + L2 + L3 / 2, -12, H3 + 1.5], '#ffaa88', '11px', 0);
+            addLabel('L2 = 45cm (固定)', [L1 + L2 / 2, -18, 5], '#ddddff', '10px', 0);
+            addLabel('底面 R-K-C-D', [L1 + L2 + L3 - 15, -8, -5], '#ff8844', '10px', 0);
+
+            const baseMat = new THREE.LineBasicMaterial({ color: 0xff8844, transparent: true, opacity: 0.6 });
+            if (points["R"] && points["K"] && points["C"] && points["D"]) {
+                const basePoints = [points["R"], points["K"], points["C"], points["D"], points["R"]];
+                const baseGeo = new THREE.BufferGeometry().setFromPoints(basePoints.map(p => new THREE.Vector3(p[0], p[1], p[2])));
+                const baseLoop = new THREE.Line(baseGeo, baseMat);
+                scene.add(baseLoop);
+            }
+
+            const wireframeMat = new THREE.LineBasicMaterial({ color: 0xffaa55, transparent: true, opacity: 0.4 });
+            const leftTopPoints = [points["E"], points["F"], points["G"], points["H"], points["E"]];
+            const midTopPoints = [points["M"], points["N"], points["O"], points["P"], points["M"]];
+            const rightTopPoints = [points["S"], points["T"], points["U"], points["V"], points["S"]];
+
+            scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(leftTopPoints.map(p => new THREE.Vector3(p[0], p[1], p[2]))), wireframeMat));
+            scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(midTopPoints.map(p => new THREE.Vector3(p[0], p[1], p[2]))), wireframeMat));
+            scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(rightTopPoints.map(p => new THREE.Vector3(p[0], p[1], p[2]))), wireframeMat));
+
+            const totalX = L1 + L2 + L3;
+            document.getElementById('coord-status').innerHTML = `🟢 已生成3D | AB:${L1.toFixed(1)}cm JQ:${L3.toFixed(1)}cm MB:${MB.toFixed(1)}cm | 总长:${totalX.toFixed(1)}cm`;
+            document.getElementById('overlay-tip').style.display = 'none';
+            modelGenerated = true;
+        }
+        
+        // ========== 識別示例圖輸入（同路徑/本機選擇）==========
+        const previewEls = [
+            document.getElementById('preview-1'),
+            document.getElementById('preview-2'),
+            document.getElementById('preview-3')
+        ];
+        const nameInputs = [
+            document.getElementById('example-name-1'),
+            document.getElementById('example-name-2'),
+            document.getElementById('example-name-3')
+        ];
+        const statusEl = document.getElementById('example-status');
+        const localFileInput = document.getElementById('local-file-input');
+
+        function setExampleStatus(msg, isError = false) {
+            statusEl.textContent = msg;
+            statusEl.style.color = isError ? '#ff9f9f' : '#9fd39f';
+        }
+
+        function clearPreview(index) {
+            previewEls[index].removeAttribute('src');
+            previewEls[index].style.opacity = '0.3';
+        }
+
+        function fillPreview(index) {
+            previewEls[index].style.opacity = '1';
+        }
+
+        function loadByRelativeNames() {
+            const names = nameInputs.map(input => input.value.trim());
+            let loaded = 0;
+            names.forEach((name, idx) => {
+                if (!name) {
+                    clearPreview(idx);
+                    return;
+                }
+                previewEls[idx].onload = () => {
+                    fillPreview(idx);
+                    loaded += 1;
+                    if (loaded === 3) {
+                        setExampleStatus('已載入同路徑 3 張示例圖片。');
+                    }
+                };
+                previewEls[idx].onerror = () => {
+                    clearPreview(idx);
+                    setExampleStatus(`第 ${idx + 1} 張讀取失敗，請確認檔名：${name}`, true);
+                };
+                previewEls[idx].src = encodeURI(name);
+            });
+        }
+
+        document.getElementById('load-by-name').addEventListener('click', loadByRelativeNames);
+        document.getElementById('pick-local-files').addEventListener('click', () => localFileInput.click());
+
+        localFileInput.addEventListener('change', () => {
+            const files = Array.from(localFileInput.files || []).slice(0, 3);
+            if (files.length < 3) {
+                setExampleStatus('請至少選擇 3 張圖片。', true);
+                return;
+            }
+            files.forEach((file, idx) => {
+                nameInputs[idx].value = file.name;
+                previewEls[idx].src = URL.createObjectURL(file);
+                fillPreview(idx);
+            });
+            setExampleStatus('已載入本機 3 張示例圖片。');
+        });
+
+        // 預設提示使用者直接選本機3張圖，避免必須改檔名
+        setExampleStatus('請按「選擇本機3張圖」，可直接使用原始檔名。');
+        document.getElementById('len-ab').value = DEFAULT_L1;
+        document.getElementById('len-jq').value = DEFAULT_L3;
+        document.getElementById('len-mb').value = DEFAULT_MB;
+
+        document.getElementById('generate-model-btn').addEventListener('click', () => {
+            const previewsReady = previewEls.every(img => !!img.getAttribute('src'));
+            if (!previewsReady) {
+                setExampleStatus('請先載入3張識別圖片，再生成3D。', true);
+                return;
+            }
+            const l1 = parseFloat(document.getElementById('len-ab').value);
+            const l3 = parseFloat(document.getElementById('len-jq').value);
+            const mb = parseFloat(document.getElementById('len-mb').value);
+            if (!Number.isFinite(l1) || !Number.isFinite(l3) || !Number.isFinite(mb) || l1 <= 0 || l3 <= 0 || mb <= h1) {
+                setExampleStatus(`長度輸入無效：AB/JQ需>0，MB需>${h1}。`, true);
+                return;
+            }
+            clearSceneObjectsKeepHelpers();
+            buildModelByMeasurements(l1, l3, mb);
+            setExampleStatus('量測值已套用，3D模型生成完成。');
+        });
+        
+        // 辅助中心光源
+        const centerLight = new THREE.PointLight(0x557799, 0.25);
+        centerLight.position.set(65, 22, 0);
+        scene.add(centerLight);
+        
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            if (modelGenerated) {
+                renderer.render(scene, camera);
+                labelRenderer.render(scene, camera);
+            } else {
+                renderer.clear();
+                labelRenderer.render(new THREE.Scene(), camera);
+            }
+        }
+        animate();
+        
+        window.addEventListener('resize', onWindowResize);
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        }
+    </script>
+</body>
+</html>

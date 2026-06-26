@@ -3,9 +3,13 @@ import mss
 import numpy as np
 import time
 from datetime import datetime
+from pathlib import Path
 
 # Function to capture a specific screen or monitor
 def capture_screen_live(screen_number=1):
+    # Save captured images to the same folder as this script.
+    output_dir = Path(__file__).resolve().parent
+
     with mss.mss() as sct:
         # Get all monitors
         monitors = sct.monitors
@@ -105,10 +109,10 @@ def capture_screen_live(screen_number=1):
                 if pipes_found > 0:
                     # Generate a filename
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    filename = f"pipe_detected_{timestamp}.jpg"
+                    filename = output_dir / f"pipe_detected_{timestamp}.jpg"
 
                     # Save the image
-                    cv2.imwrite(filename, frame_with_pipes)
+                    cv2.imwrite(str(filename), frame_with_pipes)
                     print(f"Saved image: {filename}")
                     print(f"Detected {pipes_found} pipes")
                 else:
